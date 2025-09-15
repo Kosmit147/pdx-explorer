@@ -1,6 +1,8 @@
 [package]
 name = "pdx-explorer"
 version = "0.1.0"
+license = "MIT"
 edition = "2024"
 
 [dependencies]
+eframe = "0.32.3"
