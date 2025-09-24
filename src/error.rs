@@ -6,10 +6,12 @@ pub struct Error {
 }
 
 impl Error {
+    #[cold]
     pub fn new(description: String) -> Self {
         Self { description }
     }
 
+    #[cold]
     pub fn with_file_reference(path: &Path, line_number: usize, description: &str) -> Self {
         Self::new(format!(
             "{}:{}: {}",
