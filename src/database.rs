@@ -165,20 +165,21 @@ impl Database {
             )
         })?;
 
+        let localization_key_map = self.get_localization_key_map_for_language(language);
+
         for (line_number, line) in lines {
-            self.retrieve_localization_key_from_line(line_number, line, language, path)?;
+            let (key, value) = Self::extract_localization_key_from_line(line_number, line, path)?;
+            localization_key_map.insert(key, value);
         }
 
         Ok(())
     }
 
-    fn retrieve_localization_key_from_line(
-        &mut self,
+    fn extract_localization_key_from_line(
         line_number: usize,
         line: &str,
-        language: Language,
         path: &Path,
-    ) -> Result<(), Error> {
+    ) -> Result<(String, String), Error> {
         let make_error = || {
             Error::with_file_reference(
                 path,
@@ -212,12 +213,9 @@ impl Database {
                 return Err(make_error());
             }
 
-            let localization_key_map = self.get_localization_key_map_for_language(language);
-
             let key = before_colon.to_owned();
             let value: String = after_colon_chars.collect();
-            localization_key_map.insert(key, value);
-            Ok(())
+            Ok((key, value))
         } else {
             Err(make_error())
         }
