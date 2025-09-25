@@ -84,6 +84,7 @@ pub struct Database {
 
 impl Database {
     const LOCALIZATION_PATH: &'static str = "localization";
+    const LOCALIZATION_FILE_COMMENT_DELIMITER: char = '#';
 
     pub fn new(base_path: &Path) -> Result<Self, Error> {
         let mut db = Self::default();
@@ -142,7 +143,7 @@ impl Database {
         }
 
         let (line_number, first_line) = first_line.unwrap();
-        let first_line = first_line.trim();
+        let first_line = Self::trim_comment_in_localization_file_line(first_line).trim();
 
         // Last character in the first line should be a colon.
         let language_specifier = match first_line.char_indices().next_back() {
@@ -196,7 +197,7 @@ impl Database {
         //
         //  canal_suez:0 "Suez Canal"
 
-        let line = line.trim();
+        let line = Self::trim_comment_in_localization_file_line(line).trim();
 
         if let Some((before_colon, after_colon)) = line.split_once(':') {
             // Skip the revision number and whitespace at the beginning.
@@ -218,6 +219,13 @@ impl Database {
             Ok((key, value))
         } else {
             Err(make_error())
+        }
+    }
+
+    fn trim_comment_in_localization_file_line(line: &str) -> &str {
+        match line.split_once(Self::LOCALIZATION_FILE_COMMENT_DELIMITER) {
+            Some((before_comment, _after_comment)) => before_comment,
+            None => line,
         }
     }
 }
