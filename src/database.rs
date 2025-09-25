@@ -135,25 +135,45 @@ impl Database {
             return Ok(()); // Empty file, no BOM.
         }
 
-        let mut lines = contents.unwrap().lines().enumerate();
-        let first_line = lines.next();
+        // Empty lines and lines which contain only comments are filtered out.
+        let mut filtered_lines =
+            contents
+                .unwrap()
+                .lines()
+                .enumerate()
+                .filter_map(|(line_number, line)| {
+                    // Strip the comments.
+                    let line = match line.split_once(Self::LOCALIZATION_FILE_COMMENT_DELIMITER) {
+                        Some((before_comment, _comment)) => before_comment,
+                        None => line,
+                    };
 
-        if first_line.is_none() {
+                    let line = line.trim();
+
+                    if line.is_empty() {
+                        None
+                    } else {
+                        Some((line_number, line))
+                    }
+                });
+
+        let language_specifier_line = filtered_lines.next();
+
+        if language_specifier_line.is_none() {
             return Ok(()); // Empty file.
         }
 
-        let (line_number, first_line) = first_line.unwrap();
-        let first_line = Self::trim_comment_in_localization_file_line(first_line).trim();
+        let (line_number, language_specifier_line) = language_specifier_line.unwrap();
 
         // Last character in the first line should be a colon.
-        let language_specifier = match first_line.char_indices().next_back() {
-            Some((colon_idx, ':')) => Ok(&first_line[..colon_idx]),
+        let language_specifier = match language_specifier_line.char_indices().next_back() {
+            Some((colon_idx, ':')) => Ok(&language_specifier_line[..colon_idx]),
             _ => Err(Error::with_file_reference(
                 path,
                 line_number + 1,
                 &format!(
                     "Failed to find the language specifier in line `{}`",
-                    first_line
+                    language_specifier_line
                 ),
             )),
         }?;
@@ -168,7 +188,7 @@ impl Database {
 
         let localization_key_map = self.get_localization_key_map_for_language(language);
 
-        for (line_number, line) in lines {
+        for (line_number, line) in filtered_lines {
             let (key, value) = Self::extract_localization_key_from_line(line_number, line, path)?;
             localization_key_map.insert(key, value);
         }
@@ -197,8 +217,6 @@ impl Database {
         //
         //  canal_suez:0 "Suez Canal"
 
-        let line = Self::trim_comment_in_localization_file_line(line).trim();
-
         if let Some((before_colon, after_colon)) = line.split_once(':') {
             // Skip the revision number and whitespace at the beginning.
             let after_colon =
@@ -219,13 +237,6 @@ impl Database {
             Ok((key, value))
         } else {
             Err(make_error())
-        }
-    }
-
-    fn trim_comment_in_localization_file_line(line: &str) -> &str {
-        match line.split_once(Self::LOCALIZATION_FILE_COMMENT_DELIMITER) {
-            Some((before_comment, _after_comment)) => before_comment,
-            None => line,
         }
     }
 }

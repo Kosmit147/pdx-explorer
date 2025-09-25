@@ -1,7 +1,11 @@
-﻿l_english:
+﻿
+
+
+l_english:
  key_0:0      "Key "0""
  key_1:10     "Key "1""
- key_2:100    "Key "2""
+ # this_key_shouldnt_be_parsed:100    "This key shouldn't be parsed"
+ 
  key_3:1000   "Key "3"" #
  key_4:10000  "Key "4"" # This is a comment
  key_5:100000 "Key "5""## This is another comment
