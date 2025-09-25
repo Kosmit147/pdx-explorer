@@ -150,7 +150,7 @@ impl Database {
             Some((colon_idx, ':')) => Ok(&first_line[..colon_idx]),
             _ => Err(Error::with_file_reference(
                 path,
-                line_number,
+                line_number + 1,
                 &format!(
                     "Failed to find the language specifier in line `{}`",
                     first_line
@@ -161,7 +161,7 @@ impl Database {
         let language = Language::from_language_specifier(language_specifier).ok_or_else(|| {
             Error::with_file_reference(
                 path,
-                line_number,
+                line_number + 1,
                 &format!("Unrecognized language specifier: `{}`", language_specifier),
             )
         })?;
@@ -184,7 +184,7 @@ impl Database {
         let make_error = || {
             Error::with_file_reference(
                 path,
-                line_number,
+                line_number + 1,
                 &format!("Failed to parse localization key in line `{}`", line),
             )
         };
