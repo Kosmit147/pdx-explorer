@@ -77,7 +77,7 @@ impl Default for Language {
 
 type LocalizationKeyMap = HashMap<String, String>;
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct Database {
     localization_database: HashMap<Language, LocalizationKeyMap>,
 }
