@@ -6,16 +6,27 @@ use dir_tree::DirTree;
 use eframe::egui;
 use std::path::PathBuf;
 
-#[derive(Default)]
+#[derive(Default, serde::Deserialize, serde::Serialize)]
+#[serde(default)]
 pub struct Explorer {
+    #[serde(skip)]
     dir_tree: Option<DirTree>,
+    #[serde(skip)]
     database: Option<Database>,
+    #[serde(skip)]
     error: Option<Error>,
+
+    test_string: String,
 }
 
 impl Explorer {
-    pub fn new(_cc: &eframe::CreationContext<'_>) -> Self {
-        Self::default()
+    pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
+        // Try to restore the app state from previous session.
+        if let Some(storage) = cc.storage {
+            eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default()
+        } else {
+            Self::default()
+        }
     }
 
     fn set_directory(&mut self, path: PathBuf) {
@@ -99,6 +110,9 @@ impl Explorer {
 
     fn left_panel(&mut self, ctx: &egui::Context) {
         egui::SidePanel::left("left panel").show(ctx, |ui| {
+            ui.text_edit_singleline(&mut self.test_string)
+                .on_hover_text("The value in this field should persist.");
+
             if let Some(dt) = &self.dir_tree {
                 Self::dir_tree(ui, dt.root());
             }
@@ -159,5 +173,10 @@ impl Explorer {
 impl eframe::App for Explorer {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         self.ui(ctx);
+    }
+
+    fn save(&mut self, storage: &mut dyn eframe::Storage) {
+        // Save the app state.
+        eframe::set_value(storage, eframe::APP_KEY, self);
     }
 }
