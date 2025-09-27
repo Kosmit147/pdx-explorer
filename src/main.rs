@@ -4,7 +4,7 @@ use pdx_explorer::Explorer;
 
 fn main() -> eframe::Result {
     eframe::run_native(
-        "pdx-explorer",
+        Explorer::APP_TITLE,
         eframe::NativeOptions::default(),
         Box::new(|cc| Ok(Box::new(Explorer::new(cc)))),
     )
