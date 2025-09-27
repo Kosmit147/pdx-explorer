@@ -130,42 +130,44 @@ impl Explorer {
         let selected_language = Language::English;
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            if self.database.is_none() {
+            let Some(database) = &self.database else {
                 return;
-            }
+            };
 
-            let localization_database = self.database.as_ref().unwrap().localization_database();
+            let Some(localization_key_map) =
+                database.localization_database().get(&selected_language)
+            else {
+                return;
+            };
 
-            if let Some(localization_key_map) = localization_database.get(&selected_language) {
-                let available_height = ui.available_height();
+            let available_height = ui.available_height();
 
-                egui_extras::TableBuilder::new(ui)
-                    .column(egui_extras::Column::auto())
-                    .column(egui_extras::Column::remainder())
-                    .striped(false)
-                    .resizable(true)
-                    .max_scroll_height(available_height)
-                    .header(20.0, |mut header| {
-                        header.col(|ui| {
-                            ui.strong("Key");
-                        });
-                        header.col(|ui| {
-                            ui.strong("Value");
-                        });
-                    })
-                    .body(|mut body| {
-                        for (key, value) in localization_key_map {
-                            body.row(20.0, |mut row| {
-                                row.col(|ui| {
-                                    ui.label(key);
-                                });
-                                row.col(|ui| {
-                                    ui.label(value);
-                                });
-                            });
-                        }
+            egui_extras::TableBuilder::new(ui)
+                .column(egui_extras::Column::auto())
+                .column(egui_extras::Column::remainder())
+                .striped(false)
+                .resizable(true)
+                .max_scroll_height(available_height)
+                .header(20.0, |mut header| {
+                    header.col(|ui| {
+                        ui.strong("Key");
                     });
-            }
+                    header.col(|ui| {
+                        ui.strong("Value");
+                    });
+                })
+                .body(|mut body| {
+                    for (key, value) in localization_key_map {
+                        body.row(20.0, |mut row| {
+                            row.col(|ui| {
+                                ui.label(key);
+                            });
+                            row.col(|ui| {
+                                ui.label(value);
+                            });
+                        });
+                    }
+                });
         });
     }
 }
