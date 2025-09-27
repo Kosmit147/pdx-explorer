@@ -12,6 +12,8 @@ pub struct Explorer {
     #[serde(skip)]
     dir_tree: Option<DirTree>,
     #[serde(skip)]
+    database_connection: Option<rusqlite::Connection>,
+    #[serde(skip)]
     database: Option<Database>,
     #[serde(skip)]
     error: Option<Error>,
@@ -20,6 +22,9 @@ pub struct Explorer {
 }
 
 impl Explorer {
+    pub const APP_TITLE: &'static str = "pdx-explorer";
+    pub const DATABASE_FILE_NAME: &'static str = "db.sqlite3";
+
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         // Try to restore the app state from previous session.
         if let Some(storage) = cc.storage {
@@ -29,11 +34,30 @@ impl Explorer {
         }
     }
 
+    fn database_file_path() -> Option<PathBuf> {
+        Some(eframe::storage_dir(Self::APP_TITLE)?.join(Self::DATABASE_FILE_NAME))
+    }
+
     fn set_directory(&mut self, path: PathBuf) {
         let dt = match DirTree::new(&path) {
             Ok(dt) => dt,
             Err(error) => {
                 self.error.replace(error);
+                return;
+            }
+        };
+
+        let Some(db_path) = Self::database_file_path() else {
+            self.error.replace(Error::new(
+                "Failed to obtain a path to the database file.".to_owned(),
+            ));
+            return;
+        };
+
+        let db_connection = match rusqlite::Connection::open(db_path) {
+            Ok(conn) => conn,
+            Err(error) => {
+                self.error.replace(error.into());
                 return;
             }
         };
@@ -47,6 +71,7 @@ impl Explorer {
         };
 
         self.dir_tree.replace(dt);
+        self.database_connection.replace(db_connection);
         self.database.replace(db);
     }
 

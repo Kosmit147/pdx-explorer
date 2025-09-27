@@ -9,3 +9,4 @@ eframe = { version = "0.32.3", features = ["persistence"] }
 egui_extras = "0.32.3"
 rfd = "0.15.4"
 serde = { version = "1.0.228", features = ["derive"] }
+rusqlite = { version = "0.37.0", features = ["bundled"] }
