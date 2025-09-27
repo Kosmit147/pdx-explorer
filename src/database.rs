@@ -129,41 +129,32 @@ impl Database {
 
         // Strip BOM (first three bytes).
         // todo: Should do this in a better, cleaner way.
-        let contents = contents.get(3..);
-
-        if contents.is_none() {
+        let Some(contents) = contents.get(3..) else {
             return Ok(()); // Empty file, no BOM.
-        }
+        };
 
         // Empty lines and lines which contain only comments are filtered out.
-        let mut filtered_lines =
-            contents
-                .unwrap()
-                .lines()
-                .enumerate()
-                .filter_map(|(line_number, line)| {
-                    // Strip the comments.
-                    let line = match line.split_once(Self::LOCALIZATION_FILE_COMMENT_DELIMITER) {
-                        Some((before_comment, _comment)) => before_comment,
-                        None => line,
-                    };
+        let mut filtered_lines = contents
+            .lines()
+            .enumerate()
+            .filter_map(|(line_number, line)| {
+                // Strip the comments.
+                let line = match line.split_once(Self::LOCALIZATION_FILE_COMMENT_DELIMITER) {
+                    Some((before_comment, _comment)) => before_comment,
+                    None => line,
+                }
+                .trim();
 
-                    let line = line.trim();
+                if !line.is_empty() {
+                    Some((line_number, line))
+                } else {
+                    None
+                }
+            });
 
-                    if line.is_empty() {
-                        None
-                    } else {
-                        Some((line_number, line))
-                    }
-                });
-
-        let language_specifier_line = filtered_lines.next();
-
-        if language_specifier_line.is_none() {
+        let Some((line_number, language_specifier_line)) = filtered_lines.next() else {
             return Ok(()); // Empty file.
-        }
-
-        let (line_number, language_specifier_line) = language_specifier_line.unwrap();
+        };
 
         // Last character in the first line should be a colon.
         let language_specifier = match language_specifier_line.char_indices().next_back() {
@@ -217,26 +208,26 @@ impl Database {
         //
         //  canal_suez:0 "Suez Canal"
 
-        if let Some((before_colon, after_colon)) = line.split_once(':') {
-            // Skip the revision number and whitespace at the beginning.
-            let after_colon =
-                after_colon.trim_start_matches(|c: char| c.is_ascii_digit() || c.is_whitespace());
+        let Some((before_colon, after_colon)) = line.split_once(':') else {
+            return Err(make_error());
+        };
 
-            // Make sure the first and the last character are quotes.
-            let mut after_colon_chars = after_colon.chars();
+        // Skip the revision number and whitespace at the beginning.
+        let after_colon =
+            after_colon.trim_start_matches(|c: char| c.is_ascii_digit() || c.is_whitespace());
 
-            let should_be_first_quote = after_colon_chars.next().ok_or_else(make_error)?;
-            let should_be_last_quote = after_colon_chars.next_back().ok_or_else(make_error)?;
+        // Make sure the first and the last character are quotes.
+        let mut after_colon_chars = after_colon.chars();
 
-            if should_be_first_quote != '"' || should_be_last_quote != '"' {
-                return Err(make_error());
-            }
+        let should_be_first_quote = after_colon_chars.next().ok_or_else(make_error)?;
+        let should_be_last_quote = after_colon_chars.next_back().ok_or_else(make_error)?;
 
-            let key = before_colon.to_owned();
-            let value: String = after_colon_chars.collect();
-            Ok((key, value))
-        } else {
-            Err(make_error())
+        if should_be_first_quote != '"' || should_be_last_quote != '"' {
+            return Err(make_error());
         }
+
+        let key = before_colon.to_owned();
+        let value: String = after_colon_chars.collect();
+        Ok((key, value))
     }
 }
