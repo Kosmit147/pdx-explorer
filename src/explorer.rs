@@ -1,6 +1,5 @@
 use crate::Database;
 use crate::Error;
-use crate::database::Language;
 use crate::dir_tree;
 use dir_tree::DirTree;
 use eframe::egui;
@@ -157,47 +156,47 @@ impl Explorer {
 
     fn central_panel(&mut self, ctx: &egui::Context) {
         // todo: Language selection.
-        let selected_language = Language::English;
+        // let selected_language = Language::English;
 
-        egui::CentralPanel::default().show(ctx, |ui| {
-            let Some(database) = &self.database else {
-                return;
-            };
+        egui::CentralPanel::default().show(ctx, |_ui| {
+            // let Some(database) = &self.database else {
+            //     return;
+            // };
 
-            let Some(localization_key_map) =
-                database.localization_database().get(&selected_language)
-            else {
-                return;
-            };
+            // let Some(localization_key_map) =
+            //     database.localization_database().get(&selected_language)
+            // else {
+            //     return;
+            // };
 
-            let available_height = ui.available_height();
+            // let available_height = ui.available_height();
 
-            egui_extras::TableBuilder::new(ui)
-                .column(egui_extras::Column::auto())
-                .column(egui_extras::Column::remainder())
-                .striped(false)
-                .resizable(true)
-                .max_scroll_height(available_height)
-                .header(20.0, |mut header| {
-                    header.col(|ui| {
-                        ui.strong("Key");
-                    });
-                    header.col(|ui| {
-                        ui.strong("Value");
-                    });
-                })
-                .body(|mut body| {
-                    for (key, value) in localization_key_map {
-                        body.row(20.0, |mut row| {
-                            row.col(|ui| {
-                                ui.label(key);
-                            });
-                            row.col(|ui| {
-                                ui.label(value);
-                            });
-                        });
-                    }
-                });
+            // egui_extras::TableBuilder::new(ui)
+            //     .column(egui_extras::Column::auto())
+            //     .column(egui_extras::Column::remainder())
+            //     .striped(false)
+            //     .resizable(true)
+            //     .max_scroll_height(available_height)
+            //     .header(20.0, |mut header| {
+            //         header.col(|ui| {
+            //             ui.strong("Key");
+            //         });
+            //         header.col(|ui| {
+            //             ui.strong("Value");
+            //         });
+            //     })
+            //     .body(|mut body| {
+            //         for (key, value) in localization_key_map {
+            //             body.row(20.0, |mut row| {
+            //                 row.col(|ui| {
+            //                     ui.label(key);
+            //                 });
+            //                 row.col(|ui| {
+            //                     ui.label(value);
+            //                 });
+            //             });
+            //         }
+            //     });
         });
     }
 }
