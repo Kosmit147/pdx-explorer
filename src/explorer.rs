@@ -23,7 +23,9 @@ pub struct Explorer {
 
 impl Explorer {
     pub const APP_TITLE: &'static str = "pdx-explorer";
-    pub const DATABASE_FILE_NAME: &'static str = "db.sqlite3";
+
+    const DATABASE_FILE_NAME: &'static str = "db.sqlite3";
+    const DATABASE_INIT_SCRIPT: &'static str = include_str!("sql/init.sql");
 
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         // Try to restore the app state from previous session.
@@ -32,10 +34,6 @@ impl Explorer {
         } else {
             Self::default()
         }
-    }
-
-    fn database_file_path() -> Option<PathBuf> {
-        Some(eframe::storage_dir(Self::APP_TITLE)?.join(Self::DATABASE_FILE_NAME))
     }
 
     fn set_directory(&mut self, path: PathBuf) {
@@ -47,17 +45,10 @@ impl Explorer {
             }
         };
 
-        let Some(db_path) = Self::database_file_path() else {
-            self.error.replace(Error::new(
-                "Failed to obtain a path to the database file.".to_owned(),
-            ));
-            return;
-        };
-
-        let db_connection = match rusqlite::Connection::open(db_path) {
+        let db_connection = match Self::open_and_init_database() {
             Ok(conn) => conn,
             Err(error) => {
-                self.error.replace(error.into());
+                self.error.replace(error);
                 return;
             }
         };
@@ -73,6 +64,20 @@ impl Explorer {
         self.dir_tree.replace(dt);
         self.database_connection.replace(db_connection);
         self.database.replace(db);
+    }
+
+    fn database_file_path() -> Option<PathBuf> {
+        Some(eframe::storage_dir(Self::APP_TITLE)?.join(Self::DATABASE_FILE_NAME))
+    }
+
+    fn open_and_init_database() -> Result<rusqlite::Connection, Error> {
+        let path = Self::database_file_path().ok_or_else(|| {
+            Error::new("Failed to obtain a path to the database file.".to_owned())
+        })?;
+
+        let connection = rusqlite::Connection::open(path)?;
+        connection.execute_batch(Self::DATABASE_INIT_SCRIPT)?;
+        Ok(connection)
     }
 
     fn ui(&mut self, ctx: &egui::Context) {
