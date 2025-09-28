@@ -118,21 +118,21 @@ impl Explorer {
 
     fn dir_tree(ui: &mut egui::Ui, node: &dir_tree::Node) {
         match node {
-            dir_tree::Node::Directory(dir) => {
+            dir_tree::Node::Directory { path, children } => {
                 egui::CollapsingHeader::new(format!(
                     "{}",
-                    dir.path().file_name().unwrap_or_default().display()
+                    path.file_name().unwrap_or_default().display()
                 ))
                 .show(ui, |ui| {
-                    for child in dir.children() {
+                    for child in children {
                         Self::dir_tree(ui, child);
                     }
                 });
             }
-            dir_tree::Node::File(file) => {
+            dir_tree::Node::File { path } => {
                 ui.label(format!(
                     "{}",
-                    file.path().file_name().unwrap_or_default().display()
+                    path.file_name().unwrap_or_default().display()
                 ));
             }
         }

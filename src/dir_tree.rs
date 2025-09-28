@@ -3,43 +3,16 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 #[derive(Debug)]
-pub struct Directory {
-    path: PathBuf,
-    children: Vec<Node>,
-}
-
-impl Directory {
-    pub fn path(&self) -> &Path {
-        &self.path
-    }
-
-    pub fn children(&self) -> &[Node] {
-        &self.children
-    }
-}
-
-#[derive(Debug)]
-pub struct File {
-    path: PathBuf,
-}
-
-impl File {
-    pub fn path(&self) -> &Path {
-        &self.path
-    }
-}
-
-#[derive(Debug)]
 pub enum Node {
-    Directory(Directory),
-    File(File),
+    Directory { path: PathBuf, children: Vec<Node> },
+    File { path: PathBuf },
 }
 
 impl Node {
     pub fn path(&self) -> &Path {
         match self {
-            Self::Directory(dir) => dir.path(),
-            Self::File(file) => file.path(),
+            Self::Directory { path, .. } => path,
+            Self::File { path } => path,
         }
     }
 }
@@ -77,14 +50,14 @@ impl DirTree {
 
             children.shrink_to_fit();
 
-            Ok(Node::Directory(Directory {
+            Ok(Node::Directory {
                 path: path.to_path_buf(),
                 children,
-            }))
+            })
         } else {
-            Ok(Node::File(File {
+            Ok(Node::File {
                 path: path.to_path_buf(),
-            }))
+            })
         }
     }
 }
