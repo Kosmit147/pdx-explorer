@@ -1,58 +1,50 @@
 use crate::Database;
 use crate::Error;
-use crate::dir_tree;
-use dir_tree::DirTree;
+use crate::database::dir;
 use eframe::egui;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 #[derive(Default, serde::Deserialize, serde::Serialize)]
 #[serde(default)]
 pub struct Explorer {
     #[serde(skip)]
-    dir_tree: Option<DirTree>,
-    #[serde(skip)]
-    database_connection: Option<rusqlite::Connection>,
-    #[serde(skip)]
     database: Option<Database>,
     #[serde(skip)]
     error: Option<Error>,
 
-    test_string: String,
+    persistent_string: String,
 }
 
 impl Explorer {
-    pub const APP_TITLE: &'static str = "pdx-explorer";
-
+    pub const APP_ID: &'static str = "pdx-explorer";
     const DATABASE_FILE_NAME: &'static str = "db.sqlite3";
-    const DATABASE_INIT_SCRIPT: &'static str = include_str!("sql/init.sql");
 
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         // Try to restore the app state from previous session.
         if let Some(storage) = cc.storage {
             eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default()
         } else {
-            Self::default()
+            Default::default()
         }
     }
 
-    fn set_directory(&mut self, path: PathBuf) {
-        let dt = match DirTree::new(&path) {
-            Ok(dt) => dt,
-            Err(error) => {
-                self.error.replace(error);
-                return;
-            }
+    fn storage_dir() -> Option<PathBuf> {
+        eframe::storage_dir(Self::APP_ID)
+    }
+
+    fn database_file_path() -> Option<PathBuf> {
+        Some(Self::storage_dir()?.join(Self::DATABASE_FILE_NAME))
+    }
+
+    fn set_directory(&mut self, path: &Path) {
+        let Some(db_path) = Self::database_file_path() else {
+            self.error.replace(Error::new(
+                "Failed to obtain a path to the database file.".to_owned(),
+            ));
+            return;
         };
 
-        let db_connection = match Self::open_and_init_database() {
-            Ok(conn) => conn,
-            Err(error) => {
-                self.error.replace(error);
-                return;
-            }
-        };
-
-        let db = match Database::new(&path) {
+        let db = match Database::new(path, &db_path) {
             Ok(db) => db,
             Err(error) => {
                 self.error.replace(error);
@@ -60,23 +52,7 @@ impl Explorer {
             }
         };
 
-        self.dir_tree.replace(dt);
-        self.database_connection.replace(db_connection);
         self.database.replace(db);
-    }
-
-    fn database_file_path() -> Option<PathBuf> {
-        Some(eframe::storage_dir(Self::APP_TITLE)?.join(Self::DATABASE_FILE_NAME))
-    }
-
-    fn open_and_init_database() -> Result<rusqlite::Connection, Error> {
-        let path = Self::database_file_path().ok_or_else(|| {
-            Error::new("Failed to obtain a path to the database file.".to_owned())
-        })?;
-
-        let connection = rusqlite::Connection::open(path)?;
-        connection.execute_batch(Self::DATABASE_INIT_SCRIPT)?;
-        Ok(connection)
     }
 
     fn ui(&mut self, ctx: &egui::Context) {
@@ -97,11 +73,14 @@ impl Explorer {
                 if ui.button("Open Game/Mod Directory").clicked()
                     && let Some(path) = rfd::FileDialog::new().pick_folder()
                 {
-                    self.set_directory(path);
+                    self.set_directory(&path);
                 }
 
-                if let Some(dt) = &self.dir_tree {
-                    ui.label(format!("Selected path: {}", dt.root_path().display()));
+                if let Some(db) = &self.database {
+                    ui.label(format!(
+                        "Selected path: {}",
+                        db.dir_tree().root_path().display()
+                    ));
                 }
             });
         });
@@ -115,12 +94,19 @@ impl Explorer {
         });
     }
 
-    fn dir_tree(ui: &mut egui::Ui, node: &dir_tree::Node) {
+    fn dir_tree(ui: &mut egui::Ui, node: &dir::Node) {
         match node {
-            dir_tree::Node::Directory { path, children } => {
+            dir::Node::Directory {
+                path,
+                content_type,
+                children,
+                id,
+            } => {
                 egui::CollapsingHeader::new(format!(
-                    "{}",
-                    path.file_name().unwrap_or_default().display()
+                    "{} (ct: {}, id: {})",
+                    path.file_name().unwrap_or_default().display(),
+                    content_type,
+                    id
                 ))
                 .show(ui, |ui| {
                     for child in children {
@@ -128,10 +114,16 @@ impl Explorer {
                     }
                 });
             }
-            dir_tree::Node::File { path } => {
+            dir::Node::File {
+                path,
+                content_type,
+                id,
+            } => {
                 ui.label(format!(
-                    "{}",
-                    path.file_name().unwrap_or_default().display()
+                    "{} (ct: {}, id: {})",
+                    path.file_name().unwrap_or_default().display(),
+                    content_type,
+                    id
                 ));
             }
         }
@@ -139,11 +131,11 @@ impl Explorer {
 
     fn left_panel(&mut self, ctx: &egui::Context) {
         egui::SidePanel::left("left panel").show(ctx, |ui| {
-            ui.text_edit_singleline(&mut self.test_string)
+            ui.text_edit_singleline(&mut self.persistent_string)
                 .on_hover_text("The value in this field should persist.");
 
-            if let Some(dt) = &self.dir_tree {
-                Self::dir_tree(ui, dt.root());
+            if let Some(db) = &self.database {
+                Self::dir_tree(ui, db.dir_tree().root());
             }
         });
     }

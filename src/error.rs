@@ -1,4 +1,4 @@
-use std::{fmt, io, path::Path};
+use std::{fmt, io, path, path::Path};
 
 #[derive(Debug, Clone)]
 pub struct Error {
@@ -28,6 +28,14 @@ impl Error {
 
 impl From<io::Error> for Error {
     fn from(error: io::Error) -> Self {
+        Self {
+            description: error.to_string(),
+        }
+    }
+}
+
+impl From<path::StripPrefixError> for Error {
+    fn from(error: path::StripPrefixError) -> Self {
         Self {
             description: error.to_string(),
         }
