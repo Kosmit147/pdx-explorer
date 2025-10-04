@@ -1,4 +1,4 @@
-use std::{fmt, io, path, path::Path, result};
+use std::{error, fmt, io, path, path::Path, result};
 
 pub type Result<T, E = Error> = result::Result<T, E>;
 
@@ -28,32 +28,24 @@ impl Error {
     }
 }
 
-impl From<io::Error> for Error {
-    fn from(error: io::Error) -> Self {
-        Self {
-            description: error.to_string(),
-        }
-    }
-}
-
-impl From<path::StripPrefixError> for Error {
-    fn from(error: path::StripPrefixError) -> Self {
-        Self {
-            description: error.to_string(),
-        }
-    }
-}
-
-impl From<rusqlite::Error> for Error {
-    fn from(error: rusqlite::Error) -> Self {
-        Self {
-            description: error.to_string(),
-        }
-    }
-}
-
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.description)
     }
 }
+
+impl error::Error for Error {}
+
+macro_rules! error_from_impl {
+    ($t:ty) => {
+        impl From<$t> for Error {
+            fn from(error: $t) -> Self {
+                Self::new(error.to_string())
+            }
+        }
+    };
+}
+
+error_from_impl!(io::Error);
+error_from_impl!(path::StripPrefixError);
+error_from_impl!(rusqlite::Error);
