@@ -1,6 +1,15 @@
-use std::{error, fmt, io, path, path::Path, result};
+use std::{fmt, io, path, path::Path, result};
 
 pub type Result<T, E = Error> = result::Result<T, E>;
+
+#[macro_export]
+macro_rules! error {
+    ($($arg:tt)*) => {
+        Error::new(format!($($arg)*))
+    };
+}
+
+pub use error;
 
 #[derive(Debug, Clone)]
 pub struct Error {
@@ -34,7 +43,7 @@ impl fmt::Display for Error {
     }
 }
 
-impl error::Error for Error {}
+impl std::error::Error for Error {}
 
 macro_rules! error_from_impl {
     ($t:ty) => {
