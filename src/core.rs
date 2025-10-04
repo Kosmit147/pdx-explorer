@@ -5,11 +5,19 @@ pub type Result<T, E = Error> = result::Result<T, E>;
 #[macro_export]
 macro_rules! error {
     ($($arg:tt)*) => {
-        Error::new(format!($($arg)*))
+        $crate::Error::new(format!($($arg)*))
+    };
+}
+
+#[macro_export]
+macro_rules! fail {
+    ($($arg:tt)*) => {
+        return $crate::Result::Err(error!($($arg)*))
     };
 }
 
 pub use error;
+pub use fail;
 
 #[derive(Debug, Clone)]
 pub struct Error {

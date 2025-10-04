@@ -87,10 +87,10 @@ impl DirTree {
 
     fn create_root_node(path: &Path) -> Result<Node> {
         if !path.is_dir() {
-            return Err(error!(
+            fail!(
                 "Root path `{}` doesn't point to a directory.",
                 path.display()
-            ));
+            );
         }
 
         let mut dir_ids = 1..; // 0 is reserved for the root node.
