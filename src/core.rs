@@ -1,4 +1,6 @@
-use std::{fmt, io, path, path::Path};
+use std::{fmt, io, path, path::Path, result};
+
+pub type Result<T, E = Error> = result::Result<T, E>;
 
 #[derive(Debug, Clone)]
 pub struct Error {

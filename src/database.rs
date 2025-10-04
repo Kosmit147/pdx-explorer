@@ -2,7 +2,7 @@ pub mod dir;
 mod localization;
 mod parser;
 
-use crate::Error;
+use crate::core::*;
 use std::path::Path;
 
 pub use dir::DirTree;
@@ -18,7 +18,7 @@ pub struct Database {
 impl Database {
     const DATABASE_INIT_SCRIPT: &'static str = include_str!("sql/init.sql");
 
-    pub fn new(base_path: &Path, database_file_path: &Path) -> Result<Self, Error> {
+    pub fn new(base_path: &Path, database_file_path: &Path) -> Result<Self> {
         let dir_tree = DirTree::new(base_path)?;
 
         let connection = rusqlite::Connection::open(database_file_path)?;

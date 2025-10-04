@@ -1,4 +1,4 @@
-use crate::Error;
+use crate::core::*;
 use crate::database::Language;
 use std::fs;
 use std::path::Path;
@@ -9,9 +9,7 @@ pub struct Parser {}
 impl Parser {
     const LOCALIZATION_FILE_COMMENT_DELIMITER: char = '#';
 
-    pub fn parse_localization_file(
-        path: &Path,
-    ) -> Result<(Language, Vec<(String, String)>), Error> {
+    pub fn parse_localization_file(path: &Path) -> Result<(Language, Vec<(String, String)>)> {
         // This is how a localization file looks like:
         //
         // l_english:
@@ -86,7 +84,7 @@ impl Parser {
         line_number: usize,
         line: &str,
         path: &Path,
-    ) -> Result<(String, String), Error> {
+    ) -> Result<(String, String)> {
         let make_error = || {
             Error::with_file_reference(
                 path,
