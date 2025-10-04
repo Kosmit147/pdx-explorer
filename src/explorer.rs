@@ -1,5 +1,5 @@
-use crate::core::*;
 use crate::Database;
+use crate::core::*;
 use crate::database::dir;
 use eframe::egui;
 use std::path::{Path, PathBuf};
@@ -38,9 +38,8 @@ impl Explorer {
 
     fn set_directory(&mut self, path: &Path) {
         let Some(db_path) = Self::database_file_path() else {
-            self.error.replace(Error::new(
-                "Failed to obtain a path to the database file.".to_owned(),
-            ));
+            self.error
+                .replace(error!("Failed to obtain a path to the database file."));
             return;
         };
 
