@@ -85,7 +85,7 @@ struct LocalizationMap {
 
 impl LocalizationMap {
     pub fn new() -> Self {
-        Self::default()
+        Default::default()
     }
 
     pub fn get_localization_key_map(&mut self, language: Language) -> &mut LocalizationKeyMap {

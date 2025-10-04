@@ -1,25 +1,40 @@
+pub mod dir;
 mod localization;
 mod parser;
 
 use crate::Error;
-use localization::LocalizationDatabase;
 use std::path::Path;
 
+pub use dir::DirTree;
 pub use localization::Language;
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Database {
-    localization_database: LocalizationDatabase,
+    connection: rusqlite::Connection,
+    dir_tree: DirTree,
+    // localization_database: LocalizationDatabase,
 }
 
 impl Database {
-    const LOCALIZATION_PATH: &'static str = "localization";
+    const DATABASE_INIT_SCRIPT: &'static str = include_str!("sql/init.sql");
 
-    pub fn new(base_path: &Path) -> Result<Self, Error> {
+    pub fn new(base_path: &Path, database_file_path: &Path) -> Result<Self, Error> {
+        let dir_tree = DirTree::new(base_path)?;
+
+        let connection = rusqlite::Connection::open(database_file_path)?;
+        connection.execute_batch(Self::DATABASE_INIT_SCRIPT)?;
+
+        // let localization_database =
+        //     LocalizationDatabase::new(&base_path.join("localization"))?;
+
         Ok(Self {
-            localization_database: LocalizationDatabase::new(
-                &base_path.join(Self::LOCALIZATION_PATH),
-            )?,
+            connection,
+            dir_tree,
+            // localization_database,
         })
+    }
+
+    pub fn dir_tree(&self) -> &DirTree {
+        &self.dir_tree
     }
 }
