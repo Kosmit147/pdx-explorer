@@ -1,4 +1,4 @@
-use crate::Error;
+use crate::core::*;
 use std::path::{Path, PathBuf};
 use std::{fmt, fs};
 
@@ -71,7 +71,7 @@ pub struct DirTree {
 }
 
 impl DirTree {
-    pub fn new(root: &Path) -> Result<Self, Error> {
+    pub fn new(root: &Path) -> Result<Self> {
         Ok(Self {
             root: Self::create_root_node(root)?,
         })
@@ -85,7 +85,7 @@ impl DirTree {
         self.root.path()
     }
 
-    fn create_root_node(path: &Path) -> Result<Node, Error> {
+    fn create_root_node(path: &Path) -> Result<Node> {
         if !path.is_dir() {
             return Err(Error::new(format!(
                 "Root path `{}` doesn't point to a directory.",
@@ -111,7 +111,7 @@ impl DirTree {
         current_path: &Path,
         dir_ids: &mut std::ops::RangeFrom<u32>,
         file_ids: &mut std::ops::RangeFrom<u32>,
-    ) -> Result<Node, Error> {
+    ) -> Result<Node> {
         let relative_path = current_path.strip_prefix(root_path)?;
         let content_type = Self::get_content_type_from_path(relative_path);
 
@@ -138,7 +138,7 @@ impl DirTree {
         path: &Path,
         dir_ids: &mut std::ops::RangeFrom<u32>,
         file_ids: &mut std::ops::RangeFrom<u32>,
-    ) -> Result<Vec<Node>, Error> {
+    ) -> Result<Vec<Node>> {
         let mut children = Vec::new();
 
         for child in fs::read_dir(path)? {

@@ -1,4 +1,4 @@
-use crate::Error;
+use crate::core::*;
 use crate::database::parser::Parser;
 use std::collections::HashMap;
 use std::fs;
@@ -99,7 +99,7 @@ pub struct LocalizationDatabase {
 }
 
 impl LocalizationDatabase {
-    pub fn new(localization_path: &Path) -> Result<Self, Error> {
+    pub fn new(localization_path: &Path) -> Result<Self> {
         let mut localization_map = LocalizationMap::new();
         Self::add_localization_keys_from_dir(&mut localization_map, localization_path)?;
         Ok(Self { localization_map })
@@ -108,7 +108,7 @@ impl LocalizationDatabase {
     fn add_localization_keys_from_dir(
         localization_map: &mut LocalizationMap,
         path: &Path,
-    ) -> Result<(), Error> {
+    ) -> Result<()> {
         for entry in fs::read_dir(path)? {
             let entry = entry?;
             let sub_path = entry.path();
