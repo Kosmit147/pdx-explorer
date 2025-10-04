@@ -58,3 +58,15 @@ macro_rules! error_from_impl {
 error_from_impl!(io::Error);
 error_from_impl!(path::StripPrefixError);
 error_from_impl!(rusqlite::Error);
+
+impl From<&str> for Error {
+    fn from(value: &str) -> Self {
+        Self::new(value.to_owned())
+    }
+}
+
+impl From<String> for Error {
+    fn from(value: String) -> Self {
+        Self::new(value)
+    }
+}
