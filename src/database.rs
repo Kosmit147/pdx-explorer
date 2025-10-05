@@ -1,32 +1,39 @@
 pub mod dir;
 mod localization;
 mod parser;
+mod schema;
 
 use crate::core::*;
-use rusqlite::params;
-use std::path::Path;
-
+use diesel::connection::SimpleConnection;
+use diesel::{Connection, ExpressionMethods, RunQueryDsl};
 pub use dir::{ContentType, DirTree};
 pub use localization::Language;
+use std::path::Path;
 
-#[derive(Debug)]
 pub struct Database {
-    connection: rusqlite::Connection,
+    connection: diesel::SqliteConnection,
     dir_tree: DirTree,
     // localization_database: LocalizationDatabase,
 }
 
 impl Database {
-    const DATABASE_INIT_SCRIPT: &'static str = include_str!("sql/init.sql");
+    const DATABASE_INIT_SCRIPT: &'static str = include_str!("database/sql/init.sql");
 
     pub fn new(base_path: &Path, database_file_path: &Path) -> Result<Self> {
         let dir_tree = DirTree::new(base_path)?;
 
-        let connection = rusqlite::Connection::open(database_file_path)?;
-        connection.execute_batch(Self::DATABASE_INIT_SCRIPT)?;
+        let mut connection =
+            diesel::SqliteConnection::establish(database_file_path.to_str().ok_or_else(|| {
+                error!(
+                    "Database file path `{}` contains invalid UTF-8",
+                    database_file_path.display()
+                )
+            })?)?;
 
-        Self::insert_content_types(&connection)?;
-        Self::insert_dir_tree(&connection, &dir_tree)?;
+        connection.batch_execute(Self::DATABASE_INIT_SCRIPT)?;
+
+        Self::insert_content_types(&mut connection)?;
+        Self::insert_dir_tree(&mut connection, &dir_tree)?;
 
         // let localization_database =
         //     LocalizationDatabase::new(&base_path.join("localization"))?;
@@ -42,21 +49,24 @@ impl Database {
         &self.dir_tree
     }
 
-    fn insert_content_types(connection: &rusqlite::Connection) -> Result<()> {
-        let sql = "INSERT INTO content_type(type) VALUES(?1)";
-
+    fn insert_content_types(connection: &mut diesel::SqliteConnection) -> Result<()> {
         for value in ContentType::values() {
-            connection.execute(sql, params![value.name()])?;
+            diesel::insert_into(schema::content_type::table)
+                .values(schema::content_type::dsl::name.eq(value.name()))
+                .execute(connection)?;
         }
 
         Ok(())
     }
 
-    fn insert_dir_tree(connection: &rusqlite::Connection, dir_tree: &DirTree) -> Result<()> {
+    fn insert_dir_tree(
+        connection: &mut diesel::SqliteConnection,
+        dir_tree: &DirTree,
+    ) -> Result<()> {
         Self::insert_node(connection, dir_tree.root())
     }
 
-    fn insert_node(connection: &rusqlite::Connection, node: &dir::Node) -> Result<()> {
+    fn insert_node(connection: &mut diesel::SqliteConnection, node: &dir::Node) -> Result<()> {
         match node {
             dir::Node::Directory {
                 path,
@@ -64,12 +74,7 @@ impl Database {
                 children,
                 id,
             } => {
-                let sql = "INSERT INTO directory(id, path, content_type) VALUES(?1, ?2, ?3)";
-
-                connection.execute(
-                    sql,
-                    params![id, format!("{}", path.display()), content_type.name()],
-                )?;
+                // TODO
 
                 for child in children {
                     Self::insert_node(connection, child)?;
@@ -80,12 +85,7 @@ impl Database {
                 content_type,
                 id,
             } => {
-                let sql = "INSERT INTO file(id, path, content_type) VALUES(?1, ?2, ?3)";
-
-                connection.execute(
-                    sql,
-                    params![id, format!("{}", path.display()), content_type.name()],
-                )?;
+                // TODO
             }
         }
 

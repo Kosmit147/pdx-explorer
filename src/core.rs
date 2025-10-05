@@ -65,7 +65,8 @@ macro_rules! error_from_impl {
 
 error_from_impl!(io::Error);
 error_from_impl!(path::StripPrefixError);
-error_from_impl!(rusqlite::Error);
+error_from_impl!(diesel::result::ConnectionError);
+error_from_impl!(diesel::result::Error);
 
 impl From<&str> for Error {
     fn from(value: &str) -> Self {
