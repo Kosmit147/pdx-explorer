@@ -5,38 +5,44 @@ use std::{fmt, fs};
 #[derive(Debug, Clone, Copy)]
 pub enum ContentType {
     Localization,
-    Other,
+    Unspecified,
+}
+
+impl ContentType {
+    pub fn name(&self) -> &'static str {
+        match self {
+            Self::Localization => "Localization",
+            Self::Unspecified => "Unspecified",
+        }
+    }
+
+    pub fn values() -> &'static [Self] {
+        &[Self::Localization, Self::Unspecified]
+    }
 }
 
 impl Default for ContentType {
     fn default() -> Self {
-        Self::Other
+        Self::Unspecified
     }
 }
 
 impl fmt::Display for ContentType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Self::Localization => "Localization",
-                Self::Other => "Other",
-            }
-        )
+        write!(f, "{}", self.name())
     }
 }
 
 #[derive(Debug)]
 pub enum Node {
     Directory {
-        path: PathBuf, // This path is relative to the root path.
+        path: PathBuf,
         content_type: ContentType,
         children: Vec<Node>,
         id: u32,
     },
     File {
-        path: PathBuf, // This path is relative to the root path.
+        path: PathBuf,
         content_type: ContentType,
         id: u32,
     },
@@ -72,8 +78,15 @@ pub struct DirTree {
 
 impl DirTree {
     pub fn new(root: &Path) -> Result<Self> {
+        if !root.is_dir() {
+            fail!(
+                "Root path `{}` doesn't point to a directory.",
+                root.display()
+            );
+        }
+
         Ok(Self {
-            root: Self::create_root_node(root)?,
+            root: Self::create_node(root, root, &mut (0..), &mut (0..))?,
         })
     }
 
@@ -85,50 +98,32 @@ impl DirTree {
         self.root.path()
     }
 
-    fn create_root_node(path: &Path) -> Result<Node> {
-        if !path.is_dir() {
-            fail!(
-                "Root path `{}` doesn't point to a directory.",
-                path.display()
-            );
-        }
-
-        let mut dir_ids = 1..; // 0 is reserved for the root node.
-        let mut file_ids = 0..;
-
-        let children = Self::create_children_nodes(path, path, &mut dir_ids, &mut file_ids)?;
-
-        Ok(Node::Directory {
-            path: path.to_path_buf(),
-            content_type: Default::default(),
-            children,
-            id: 0,
-        })
-    }
-
     fn create_node(
         root_path: &Path,
         current_path: &Path,
         dir_ids: &mut std::ops::RangeFrom<u32>,
         file_ids: &mut std::ops::RangeFrom<u32>,
     ) -> Result<Node> {
-        let relative_path = current_path.strip_prefix(root_path)?;
-        let content_type = Self::get_content_type_from_path(relative_path);
+        let path = current_path.to_path_buf();
+        let content_type = Self::get_content_type_from_path(root_path, current_path)?;
 
         if current_path.is_dir() {
+            let id = dir_ids.next().unwrap();
             let children = Self::create_children_nodes(root_path, current_path, dir_ids, file_ids)?;
 
             Ok(Node::Directory {
-                path: relative_path.to_path_buf(),
+                path,
                 content_type,
                 children,
-                id: dir_ids.next().unwrap(),
+                id,
             })
         } else {
+            let id = file_ids.next().unwrap();
+
             Ok(Node::File {
-                path: relative_path.to_path_buf(),
+                path,
                 content_type,
-                id: file_ids.next().unwrap(),
+                id,
             })
         }
     }
@@ -153,11 +148,13 @@ impl DirTree {
     }
 
     // The given path must be relative to the root of the dir tree.
-    fn get_content_type_from_path(path: &Path) -> ContentType {
-        if path.starts_with("localization") {
+    fn get_content_type_from_path(root_path: &Path, path: &Path) -> Result<ContentType> {
+        let relative_path = path.strip_prefix(root_path)?;
+
+        Ok(if relative_path.starts_with("localization") {
             ContentType::Localization
         } else {
-            ContentType::Other
-        }
+            ContentType::Unspecified
+        })
     }
 }
