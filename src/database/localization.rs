@@ -1,8 +1,8 @@
 use crate::core::*;
 use crate::database::parser::Parser;
 use std::collections::HashMap;
-use std::fs;
 use std::path::Path;
+use std::{fmt, fs};
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub enum Language {
@@ -73,6 +73,12 @@ impl Language {
 impl Default for Language {
     fn default() -> Self {
         Self::English
+    }
+}
+
+impl fmt::Display for Language {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.name())
     }
 }
 
