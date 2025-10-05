@@ -80,7 +80,7 @@ impl DirTree {
     pub fn new(root: &Path) -> Result<Self> {
         if !root.is_dir() {
             fail!(
-                "Root path `{}` doesn't point to a directory.",
+                "Root path `{}` doesn't point to a directory",
                 root.display()
             );
         }
