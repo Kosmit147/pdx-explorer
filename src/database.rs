@@ -74,7 +74,17 @@ impl Database {
                 children,
                 id,
             } => {
-                // TODO
+                let path = path
+                    .to_str()
+                    .ok_or_else(|| error!("Path `{}` contains invalid UTF-8", path.display()))?;
+
+                diesel::insert_into(schema::directory::table)
+                    .values((
+                        schema::directory::id.eq(*id as i32),
+                        schema::directory::path.eq(path),
+                        schema::directory::content_type.eq(content_type.name()),
+                    ))
+                    .execute(connection)?;
 
                 for child in children {
                     Self::insert_node(connection, child)?;
@@ -85,7 +95,17 @@ impl Database {
                 content_type,
                 id,
             } => {
-                // TODO
+                let path = path
+                    .to_str()
+                    .ok_or_else(|| error!("Path `{}` contains invalid UTF-8", path.display()))?;
+
+                diesel::insert_into(schema::file::table)
+                    .values((
+                        schema::file::id.eq(*id as i32),
+                        schema::file::path.eq(path),
+                        schema::file::content_type.eq(content_type.name()),
+                    ))
+                    .execute(connection)?;
             }
         }
 
