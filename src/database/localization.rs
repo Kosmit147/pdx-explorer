@@ -1,86 +1,9 @@
 use crate::core::*;
+use crate::database::Language;
 use crate::database::parser::Parser;
 use std::collections::HashMap;
+use std::fs;
 use std::path::Path;
-use std::{fmt, fs};
-
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
-pub enum Language {
-    English,
-    BrazilianPortuguese,
-    French,
-    German,
-    Polish,
-    Russian,
-    Spanish,
-    Japanese,
-    SimplifiedChinese,
-    Korean,
-    Turkish,
-}
-
-impl Language {
-    pub fn from_language_specifier(specifier: &str) -> Option<Self> {
-        match specifier {
-            "l_english" => Some(Self::English),
-            "l_braz_por" => Some(Self::BrazilianPortuguese),
-            "l_french" => Some(Self::French),
-            "l_german" => Some(Self::German),
-            "l_polish" => Some(Self::Polish),
-            "l_russian" => Some(Self::Russian),
-            "l_spanish" => Some(Self::Spanish),
-            "l_japanese" => Some(Self::Japanese),
-            "l_simp_chinese" => Some(Self::SimplifiedChinese),
-            "l_korean" => Some(Self::Korean),
-            "l_turkish" => Some(Self::Turkish),
-            _ => None,
-        }
-    }
-
-    pub fn name(&self) -> &'static str {
-        match self {
-            Self::English => "English",
-            Self::BrazilianPortuguese => "Brazilian Portuguese",
-            Self::French => "French",
-            Self::German => "German",
-            Self::Polish => "Polish",
-            Self::Russian => "Russian",
-            Self::Spanish => "Spanish",
-            Self::Japanese => "Japanese",
-            Self::SimplifiedChinese => "Simplified Chinese",
-            Self::Korean => "Korean",
-            Self::Turkish => "Turkish",
-        }
-    }
-
-    pub fn values() -> &'static [Self] {
-        &[
-            Self::English,
-            Self::BrazilianPortuguese,
-            Self::French,
-            Self::German,
-            Self::Polish,
-            Self::Russian,
-            Self::Spanish,
-            Self::Japanese,
-            Self::SimplifiedChinese,
-            Self::Korean,
-            Self::Turkish,
-        ]
-    }
-}
-
-impl Default for Language {
-    fn default() -> Self {
-        Self::English
-    }
-}
-
-impl fmt::Display for Language {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.name())
-    }
-}
 
 type LocalizationKeyMap = HashMap<String, String>;
 

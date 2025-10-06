@@ -1,37 +1,7 @@
 use crate::core::*;
+use crate::database::ContentType;
+use std::fs;
 use std::path::{Path, PathBuf};
-use std::{fmt, fs};
-
-#[derive(Debug, Clone, Copy)]
-pub enum ContentType {
-    Localization,
-    Unspecified,
-}
-
-impl ContentType {
-    pub fn name(&self) -> &'static str {
-        match self {
-            Self::Localization => "Localization",
-            Self::Unspecified => "Unspecified",
-        }
-    }
-
-    pub fn values() -> &'static [Self] {
-        &[Self::Localization, Self::Unspecified]
-    }
-}
-
-impl Default for ContentType {
-    fn default() -> Self {
-        Self::Unspecified
-    }
-}
-
-impl fmt::Display for ContentType {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.name())
-    }
-}
 
 #[derive(Debug)]
 pub enum Node {
