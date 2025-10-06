@@ -1,5 +1,4 @@
 pub mod dir;
-mod localization;
 mod parser;
 mod schema;
 
@@ -122,7 +121,6 @@ impl fmt::Display for Language {
 pub struct Database {
     connection: diesel::SqliteConnection,
     dir_tree: DirTree,
-    // localization_database: LocalizationDatabase,
 }
 
 impl Database {
@@ -139,13 +137,9 @@ impl Database {
         Self::insert_content_types(&mut connection)?;
         Self::insert_dir_tree(&mut connection, &dir_tree)?;
 
-        // let localization_database =
-        //     LocalizationDatabase::new(&base_path.join("localization"))?;
-
         Ok(Self {
             connection,
             dir_tree,
-            // localization_database,
         })
     }
 
