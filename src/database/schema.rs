@@ -16,6 +16,9 @@ table! {
     }
 }
 
+joinable!(directory -> content_type (content_type));
+allow_tables_to_appear_in_same_query!(directory, content_type);
+
 table! {
     file (id) {
         id -> Integer,
@@ -23,3 +26,6 @@ table! {
         content_type -> Text,
     }
 }
+
+joinable!(file -> content_type (content_type));
+allow_tables_to_appear_in_same_query!(file, content_type);
