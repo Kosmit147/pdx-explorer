@@ -1,10 +1,11 @@
 pub mod dir;
+mod models;
 mod parser;
 mod schema;
 
 use crate::core::*;
 use diesel::connection::SimpleConnection;
-use diesel::{Connection, ExpressionMethods, RunQueryDsl};
+use diesel::{Connection, RunQueryDsl};
 use dir::DirTree;
 use std::fmt;
 use std::path::Path;
@@ -12,25 +13,25 @@ use std::path::Path;
 #[derive(Debug, Clone, Copy)]
 pub enum ContentType {
     Localization,
-    Unspecified,
+    Indeterminate,
 }
 
 impl ContentType {
     pub fn name(&self) -> &'static str {
         match self {
             Self::Localization => "Localization",
-            Self::Unspecified => "Unspecified",
+            Self::Indeterminate => "Indeterminate",
         }
     }
 
     pub fn values() -> &'static [Self] {
-        &[Self::Localization, Self::Unspecified]
+        &[Self::Localization, Self::Indeterminate]
     }
 }
 
 impl Default for ContentType {
     fn default() -> Self {
-        Self::Unspecified
+        Self::Indeterminate
     }
 }
 
@@ -150,7 +151,7 @@ impl Database {
     fn insert_content_types(connection: &mut diesel::SqliteConnection) -> Result<()> {
         for value in ContentType::values() {
             diesel::insert_into(schema::content_type::table)
-                .values(schema::content_type::dsl::name.eq(value.name()))
+                .values(models::NewContentType { name: value.name() })
                 .execute(connection)?;
         }
 
@@ -173,11 +174,11 @@ impl Database {
                 id,
             } => {
                 diesel::insert_into(schema::directory::table)
-                    .values((
-                        schema::directory::id.eq(*id as i32),
-                        schema::directory::path.eq(Self::path_to_str(path)?),
-                        schema::directory::content_type.eq(content_type.name()),
-                    ))
+                    .values(models::NewDirectory {
+                        id: *id as i32,
+                        path: Self::path_to_str(path)?,
+                        content_type: content_type.name(),
+                    })
                     .execute(connection)?;
 
                 for child in children {
@@ -190,11 +191,11 @@ impl Database {
                 id,
             } => {
                 diesel::insert_into(schema::file::table)
-                    .values((
-                        schema::file::id.eq(*id as i32),
-                        schema::file::path.eq(Self::path_to_str(path)?),
-                        schema::file::content_type.eq(content_type.name()),
-                    ))
+                    .values(models::NewFile {
+                        id: *id as i32,
+                        path: Self::path_to_str(path)?,
+                        content_type: content_type.name(),
+                    })
                     .execute(connection)?;
             }
         }
