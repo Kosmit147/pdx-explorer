@@ -124,7 +124,7 @@ impl DirTree {
         Ok(if relative_path.starts_with("localization") {
             ContentType::Localization
         } else {
-            ContentType::Unspecified
+            ContentType::Indeterminate
         })
     }
 }

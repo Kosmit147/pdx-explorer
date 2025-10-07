@@ -1,4 +1,4 @@
-// This file must be kept up to date with the init.sql file.
+// This file must be kept up to date with the init.sql and models.rs files.
 
 use diesel::prelude::*;
 

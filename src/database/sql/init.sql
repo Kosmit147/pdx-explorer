@@ -1,4 +1,4 @@
--- This file must be kept up to date with the schema.rs file.
+-- This file must be kept up to date with the schema.rs and models.rs files.
 
 PRAGMA foreign_keys = OFF;
 
