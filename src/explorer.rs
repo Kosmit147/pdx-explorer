@@ -39,7 +39,7 @@ impl Explorer {
     fn set_directory(&mut self, path: &Path) {
         let Some(db_path) = Self::database_file_path() else {
             self.error
-                .replace(error!("Failed to obtain a path to the database file"));
+                .replace(error!("failed to obtain a path to the database file"));
             return;
         };
 
