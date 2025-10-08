@@ -130,9 +130,7 @@ impl DirTree {
             );
         }
 
-        Ok(Self {
-            root: Self::create_node(root, root, &mut (0..), &mut (0..))?,
-        })
+        DirTreeBuilder::new(root).build()
     }
 
     pub fn root(&self) -> &Node {
@@ -142,29 +140,44 @@ impl DirTree {
     pub fn root_path(&self) -> &Path {
         self.root.full_path()
     }
+}
 
-    fn create_node(
-        root_path: &Path,
-        current_path: &Path,
-        dir_ids: &mut std::ops::RangeFrom<u32>,
-        file_ids: &mut std::ops::RangeFrom<u32>,
-    ) -> Result<Node> {
-        let full_path = current_path.to_path_buf();
-        let relative_path = full_path.strip_prefix(root_path)?.to_path_buf();
-        let file_name = PathBuf::from(full_path.file_name().ok_or_else(|| {
-            error!(
-                "failed to extract file name from path `{}`",
-                full_path.display()
-            )
-        })?);
+// This is meant to be a private builder for use by this module only.
+struct DirTreeBuilder<'a> {
+    root_path: &'a Path,
+    dir_ids: std::ops::RangeFrom<u32>,
+    file_ids: std::ops::RangeFrom<u32>,
+}
+
+impl<'a> DirTreeBuilder<'a> {
+    fn new(root: &'a Path) -> Self {
+        Self {
+            root_path: root,
+            dir_ids: 0..,
+            file_ids: 0..,
+        }
+    }
+
+    fn build(mut self) -> Result<DirTree> {
+        Ok(DirTree {
+            root: self.create_node(self.root_path.to_owned())?,
+        })
+    }
+
+    fn create_node(&mut self, path: PathBuf) -> Result<Node> {
+        let relative_path = path.strip_prefix(self.root_path)?.to_path_buf();
+        let file_name =
+            PathBuf::from(path.file_name().ok_or_else(|| {
+                error!("failed to extract file name from path `{}`", path.display())
+            })?);
         let content_type = Self::get_content_type_from_relative_path(&relative_path)?;
 
-        if current_path.is_dir() {
-            let id = dir_ids.next().unwrap();
-            let children = Self::create_children_nodes(root_path, current_path, dir_ids, file_ids)?;
+        if path.is_dir() {
+            let id = self.dir_ids.next().unwrap();
+            let children = self.create_children_nodes(&path)?;
 
             Ok(Node::Directory(Directory {
-                full_path,
+                full_path: path,
                 relative_path,
                 dir_name: file_name,
 
@@ -174,10 +187,10 @@ impl DirTree {
                 children,
             }))
         } else {
-            let id = file_ids.next().unwrap();
+            let id = self.file_ids.next().unwrap();
 
             Ok(Node::File(File {
-                full_path,
+                full_path: path,
                 relative_path,
                 file_name,
 
@@ -187,18 +200,13 @@ impl DirTree {
         }
     }
 
-    fn create_children_nodes(
-        root_path: &Path,
-        path: &Path,
-        dir_ids: &mut std::ops::RangeFrom<u32>,
-        file_ids: &mut std::ops::RangeFrom<u32>,
-    ) -> Result<Vec<Node>> {
+    fn create_children_nodes(&mut self, path: &Path) -> Result<Vec<Node>> {
         let mut children = Vec::new();
 
         for child in fs::read_dir(path)? {
             let child = child?;
             let child_path = child.path();
-            let child_node = Self::create_node(root_path, &child_path, dir_ids, file_ids)?;
+            let child_node = self.create_node(child_path)?;
             children.push(child_node);
         }
 
