@@ -10,7 +10,7 @@ pub struct ContentType {
     pub name: String,
 }
 
-#[derive(Insertable)]
+#[derive(Insertable, AsChangeset)]
 #[diesel(table_name = super::schema::content_type)]
 pub struct NewContentType<'a> {
     pub name: &'a str,
@@ -23,15 +23,19 @@ pub struct NewContentType<'a> {
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct Directory {
     pub id: i32,
-    pub path: String,
+    pub full_path: String,
+    pub relative_path: String,
+    pub dir_name: String,
     pub content_type: String,
 }
 
-#[derive(Insertable)]
+#[derive(Insertable, AsChangeset)]
 #[diesel(table_name = super::schema::directory)]
 pub struct NewDirectory<'a> {
     pub id: i32,
-    pub path: &'a str,
+    pub full_path: &'a str,
+    pub relative_path: &'a str,
+    pub dir_name: &'a str,
     pub content_type: &'a str,
 }
 
@@ -42,14 +46,46 @@ pub struct NewDirectory<'a> {
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct File {
     pub id: i32,
-    pub path: String,
+    pub full_path: String,
+    pub relative_path: String,
+    pub file_name: String,
     pub content_type: String,
 }
 
-#[derive(Insertable)]
+#[derive(Queryable, Identifiable, Selectable, Debug, PartialEq)]
+#[diesel(table_name = super::schema::file)]
+#[diesel(primary_key(id))]
+#[diesel(check_for_backend(diesel::sqlite::Sqlite))]
+pub struct FileIdAndPath {
+    pub id: i32,
+    pub full_path: String,
+}
+
+#[derive(Insertable, AsChangeset)]
 #[diesel(table_name = super::schema::file)]
 pub struct NewFile<'a> {
     pub id: i32,
-    pub path: &'a str,
+    pub full_path: &'a str,
+    pub relative_path: &'a str,
+    pub file_name: &'a str,
     pub content_type: &'a str,
+}
+
+#[derive(Queryable, Identifiable, Selectable, Associations, Debug, PartialEq)]
+#[diesel(table_name = super::schema::localization_key)]
+#[diesel(primary_key(key))]
+#[diesel(belongs_to(File, foreign_key = file_id))]
+#[diesel(check_for_backend(diesel::sqlite::Sqlite))]
+pub struct LocalizationKey {
+    pub key: String,
+    pub value: String,
+    pub file_id: i32,
+}
+
+#[derive(Insertable, AsChangeset)]
+#[diesel(table_name = super::schema::localization_key)]
+pub struct NewLocalizationKey<'a> {
+    pub key: &'a str,
+    pub value: &'a str,
+    pub file_id: i32,
 }

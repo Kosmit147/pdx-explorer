@@ -9,6 +9,7 @@ pub struct Parser {}
 impl Parser {
     const LOCALIZATION_FILE_COMMENT_DELIMITER: char = '#';
 
+    // TODO: This function shouldn't take in a path (it should take in file contents or a reader).
     pub fn parse_localization_file(path: &Path) -> Result<(Language, Vec<(String, String)>)> {
         // This is how a localization file looks like:
         //
@@ -21,7 +22,7 @@ impl Parser {
         let file_content = fs::read_to_string(path)?;
 
         // Strip BOM (first three bytes).
-        // todo: Should do this in a better, cleaner way.
+        // TODO: Should do this in a better, cleaner way.
         let Some(file_content) = file_content.get(3..) else {
             return Ok(Default::default()); // Empty file, no BOM.
         };

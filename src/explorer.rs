@@ -99,40 +99,34 @@ impl Explorer {
 
     fn bottom_panel_content(&mut self, ui: &mut egui::Ui) {
         if let Some(error) = &self.error {
-            ui.colored_label(egui::Color32::YELLOW, error.description());
+            ui.colored_label(
+                egui::Color32::YELLOW,
+                format!("Error: {}.", error.description()),
+            );
         }
     }
 
     fn dir_tree(ui: &mut egui::Ui, node: &dir::Node) {
         match node {
-            dir::Node::Directory {
-                path,
-                content_type,
-                children,
-                id,
-            } => {
+            dir::Node::Directory(dir) => {
                 egui::CollapsingHeader::new(format!(
                     "{} (ct: {}, id: {})",
-                    path.file_name().unwrap_or_default().display(),
-                    content_type,
-                    id
+                    dir.dir_name().display(),
+                    dir.content_type(),
+                    dir.id()
                 ))
                 .show(ui, |ui| {
-                    for child in children {
+                    for child in dir.children() {
                         Self::dir_tree(ui, child);
                     }
                 });
             }
-            dir::Node::File {
-                path,
-                content_type,
-                id,
-            } => {
+            dir::Node::File(file) => {
                 ui.label(format!(
                     "{} (ct: {}, id: {})",
-                    path.file_name().unwrap_or_default().display(),
-                    content_type,
-                    id
+                    file.file_name().display(),
+                    file.content_type(),
+                    file.id()
                 ));
             }
         }
