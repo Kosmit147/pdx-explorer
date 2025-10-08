@@ -5,10 +5,13 @@ mod schema;
 
 use crate::core::*;
 use diesel::connection::SimpleConnection;
-use diesel::{Connection, RunQueryDsl};
+use diesel::{
+    BelongingToDsl, Connection, ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper,
+};
 use dir::DirTree;
+use parser::Parser;
 use std::fmt;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone, Copy)]
 pub enum ContentType {
@@ -137,6 +140,7 @@ impl Database {
 
         Self::insert_content_types(&mut connection)?;
         Self::insert_dir_tree(&mut connection, &dir_tree)?;
+        Self::parse_and_insert_localization_keys(&mut connection)?;
 
         Ok(Self {
             connection,
@@ -167,40 +171,91 @@ impl Database {
 
     fn insert_node(connection: &mut diesel::SqliteConnection, node: &dir::Node) -> Result<()> {
         match node {
-            dir::Node::Directory {
-                path,
-                content_type,
-                children,
-                id,
-            } => {
+            dir::Node::Directory(dir) => {
                 diesel::insert_into(schema::directory::table)
                     .values(models::NewDirectory {
-                        id: *id as i32,
-                        path: Self::path_to_str(path)?,
-                        content_type: content_type.name(),
+                        id: dir.id() as i32,
+                        full_path: Self::path_to_str(dir.full_path())?,
+                        relative_path: Self::path_to_str(dir.relative_path())?,
+                        dir_name: Self::path_to_str(dir.dir_name())?,
+                        content_type: dir.content_type().name(),
                     })
                     .execute(connection)?;
 
-                for child in children {
+                for child in dir.children() {
                     Self::insert_node(connection, child)?;
                 }
             }
-            dir::Node::File {
-                path,
-                content_type,
-                id,
-            } => {
+            dir::Node::File(file) => {
                 diesel::insert_into(schema::file::table)
                     .values(models::NewFile {
-                        id: *id as i32,
-                        path: Self::path_to_str(path)?,
-                        content_type: content_type.name(),
+                        id: file.id() as i32,
+                        full_path: Self::path_to_str(file.full_path())?,
+                        relative_path: Self::path_to_str(file.relative_path())?,
+                        file_name: Self::path_to_str(file.file_name())?,
+                        content_type: file.content_type().name(),
                     })
                     .execute(connection)?;
             }
         }
 
         Ok(())
+    }
+
+    fn parse_and_insert_localization_keys(connection: &mut diesel::SqliteConnection) -> Result<()> {
+        // The rules for parsing localization keys are as follows:
+        //
+        // 1. Localization files must be .yml format encoded in UTF-8-BOM. Otherwise, the game
+        // ignores the file.
+        // 2. The filename must end with _l_<language>.
+        // 3. Localization files are processed in reverse alphabetical order (from Z to A), adding
+        // a or 0 at the beginning of the localization file will make sure it is applied last.
+        // 4. File within a 'replace' folder work slightly differently as the localization keys
+        // within are checked specifically and overwrite any other identical localization keys.
+
+        let files = Self::select_localization_files_for_parsing(connection)?;
+
+        for file in files {
+            let path = PathBuf::from(file.full_path);
+
+            // TODO: Sort entries per language in the database.
+            let (_language, keys) = Parser::parse_localization_file(&path)?;
+
+            for (key, value) in keys {
+                let new_key = models::NewLocalizationKey {
+                    key: &key,
+                    value: &value,
+                    file_id: file.id,
+                };
+
+                diesel::insert_into(schema::localization_key::table)
+                    .values(&new_key)
+                    .on_conflict(schema::localization_key::key)
+                    .do_update()
+                    .set(&new_key)
+                    .execute(connection)?;
+            }
+        }
+
+        Ok(())
+    }
+
+    fn select_localization_files_for_parsing(
+        connection: &mut diesel::SqliteConnection,
+    ) -> Result<Vec<models::FileIdAndPath>> {
+        // Localization files are processed in reverse alphabetical order (from Z to A), adding
+        // a or 0 at the beginning of the localization file will make sure it is applied last.
+
+        let content_type = models::ContentType {
+            name: ContentType::Localization.name().to_owned(),
+        };
+
+        let files = models::File::belonging_to(&content_type)
+            .order_by(schema::file::file_name.desc())
+            .select(models::FileIdAndPath::as_select())
+            .get_results(connection)?;
+
+        Ok(files)
     }
 
     // Helper function which returns a Result instead of Option.

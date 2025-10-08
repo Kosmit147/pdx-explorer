@@ -11,7 +11,9 @@ table! {
 table! {
     directory (id) {
         id -> Integer,
-        path -> Text,
+        full_path -> Text,
+        relative_path -> Text,
+        dir_name -> Text,
         content_type -> Text,
     }
 }
@@ -22,10 +24,23 @@ allow_tables_to_appear_in_same_query!(directory, content_type);
 table! {
     file (id) {
         id -> Integer,
-        path -> Text,
+        full_path -> Text,
+        relative_path -> Text,
+        file_name -> Text,
         content_type -> Text,
     }
 }
 
 joinable!(file -> content_type (content_type));
 allow_tables_to_appear_in_same_query!(file, content_type);
+
+table! {
+    localization_key (key) {
+        key -> Text,
+        value -> Text,
+        file_id -> Integer,
+    }
+}
+
+joinable!(localization_key -> file (file_id));
+allow_tables_to_appear_in_same_query!(localization_key, file);

@@ -16,17 +16,21 @@ CREATE TABLE IF NOT EXISTS content_type
 
 CREATE TABLE IF NOT EXISTS directory
 (
-    id           INTEGER PRIMARY KEY NOT NULL,
-    path         TEXT                NOT NULL,
-    content_type TEXT,
+    id            INTEGER PRIMARY KEY NOT NULL,
+    full_path     TEXT                NOT NULL,
+    relative_path TEXT                NOT NULL,
+    dir_name      TEXT                NOT NULL,
+    content_type  TEXT,
     FOREIGN KEY (content_type) REFERENCES content_type (name) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS file
 (
-    id           INTEGER PRIMARY KEY NOT NULL,
-    path         TEXT                NOT NULL,
-    content_type TEXT,
+    id            INTEGER PRIMARY KEY NOT NULL,
+    full_path     TEXT                NOT NULL,
+    relative_path TEXT                NOT NULL,
+    file_name     TEXT                NOT NULL,
+    content_type  TEXT,
     FOREIGN KEY (content_type) REFERENCES content_type (name) ON DELETE CASCADE
 );
 
