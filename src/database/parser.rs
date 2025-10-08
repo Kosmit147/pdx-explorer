@@ -58,7 +58,7 @@ impl Parser {
                 path,
                 line_number + 1,
                 &format!(
-                    "Failed to find the language specifier in line `{}`",
+                    "failed to find the language specifier in line `{}`",
                     language_specifier_line
                 ),
             )),
@@ -68,7 +68,7 @@ impl Parser {
             Error::with_file_reference(
                 path,
                 line_number + 1,
-                &format!("Unrecognized language specifier: `{}`", language_specifier),
+                &format!("unrecognized language specifier: `{}`", language_specifier),
             )
         })?;
 
@@ -90,7 +90,7 @@ impl Parser {
             Error::with_file_reference(
                 path,
                 line_number + 1,
-                &format!("Failed to parse localization key in line `{}`", line),
+                &format!("failed to parse localization key in line `{}`", line),
             )
         };
 

@@ -125,7 +125,7 @@ impl DirTree {
     pub fn new(root: &Path) -> Result<Self> {
         if !root.is_dir() {
             fail!(
-                "Root path `{}` doesn't point to a directory",
+                "root path `{}` doesn't point to a directory",
                 root.display()
             );
         }
@@ -153,7 +153,7 @@ impl DirTree {
         let relative_path = full_path.strip_prefix(root_path)?.to_path_buf();
         let file_name = PathBuf::from(full_path.file_name().ok_or_else(|| {
             error!(
-                "Failed to extract file name from path `{}`",
+                "failed to extract file name from path `{}`",
                 full_path.display()
             )
         })?);
