@@ -13,7 +13,7 @@ use parser::Parser;
 use std::fmt;
 use std::path::{Path, PathBuf};
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, serde::Deserialize, serde::Serialize)]
 pub enum ContentType {
     Localization,
     Indeterminate,
@@ -44,7 +44,7 @@ impl fmt::Display for ContentType {
     }
 }
 
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
 pub enum Language {
     English,
     BrazilianPortuguese,
