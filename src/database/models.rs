@@ -2,7 +2,7 @@
 
 use diesel::prelude::*;
 
-#[derive(Queryable, Identifiable, Selectable, Debug, PartialEq)]
+#[derive(Queryable, Identifiable, Selectable, Debug, Clone, PartialEq)]
 #[diesel(table_name = super::schema::language)]
 #[diesel(primary_key(name))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -16,7 +16,7 @@ pub struct NewLanguage<'a> {
     pub name: &'a str,
 }
 
-#[derive(Queryable, Identifiable, Selectable, Debug, PartialEq)]
+#[derive(Queryable, Identifiable, Selectable, Debug, Clone, PartialEq)]
 #[diesel(table_name = super::schema::content_type)]
 #[diesel(primary_key(name))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -30,7 +30,7 @@ pub struct NewContentType<'a> {
     pub name: &'a str,
 }
 
-#[derive(Queryable, Identifiable, Selectable, Associations, Debug, PartialEq)]
+#[derive(Queryable, Identifiable, Selectable, Associations, Debug, Clone, PartialEq)]
 #[diesel(table_name = super::schema::directory)]
 #[diesel(primary_key(id))]
 #[diesel(belongs_to(ContentType, foreign_key = content_type))]
@@ -53,7 +53,7 @@ pub struct NewDirectory<'a> {
     pub content_type: &'a str,
 }
 
-#[derive(Queryable, Identifiable, Selectable, Associations, Debug, PartialEq)]
+#[derive(Queryable, Identifiable, Selectable, Associations, Debug, Clone, PartialEq)]
 #[diesel(table_name = super::schema::file)]
 #[diesel(primary_key(id))]
 #[diesel(belongs_to(ContentType, foreign_key = content_type))]
@@ -66,7 +66,7 @@ pub struct File {
     pub content_type: String,
 }
 
-#[derive(Queryable, Identifiable, Selectable, Debug, PartialEq)]
+#[derive(Queryable, Identifiable, Selectable, Debug, Clone, PartialEq)]
 #[diesel(table_name = super::schema::file)]
 #[diesel(primary_key(id))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -85,7 +85,7 @@ pub struct NewFile<'a> {
     pub content_type: &'a str,
 }
 
-#[derive(Queryable, Identifiable, Selectable, Associations, Debug, PartialEq)]
+#[derive(Queryable, Identifiable, Selectable, Associations, Debug, Clone, PartialEq)]
 #[diesel(table_name = super::schema::localization_key)]
 #[diesel(primary_key(key))]
 #[diesel(belongs_to(File, foreign_key = file_id))]
