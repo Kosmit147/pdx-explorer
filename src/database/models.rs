@@ -3,6 +3,20 @@
 use diesel::prelude::*;
 
 #[derive(Queryable, Identifiable, Selectable, Debug, PartialEq)]
+#[diesel(table_name = super::schema::language)]
+#[diesel(primary_key(name))]
+#[diesel(check_for_backend(diesel::sqlite::Sqlite))]
+pub struct Language {
+    pub name: String,
+}
+
+#[derive(Insertable, AsChangeset)]
+#[diesel(table_name = super::schema::language)]
+pub struct NewLanguage<'a> {
+    pub name: &'a str,
+}
+
+#[derive(Queryable, Identifiable, Selectable, Debug, PartialEq)]
 #[diesel(table_name = super::schema::content_type)]
 #[diesel(primary_key(name))]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
@@ -80,6 +94,7 @@ pub struct LocalizationKey {
     pub key: String,
     pub value: String,
     pub file_id: i32,
+    pub language: String,
 }
 
 #[derive(Insertable, AsChangeset)]
@@ -88,4 +103,5 @@ pub struct NewLocalizationKey<'a> {
     pub key: &'a str,
     pub value: &'a str,
     pub file_id: i32,
+    pub language: &'a str,
 }

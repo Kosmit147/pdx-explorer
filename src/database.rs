@@ -138,6 +138,7 @@ impl Database {
 
         connection.batch_execute(Self::DATABASE_INIT_SCRIPT)?;
 
+        Self::insert_languages(&mut connection)?;
         Self::insert_content_types(&mut connection)?;
         Self::insert_dir_tree(&mut connection, &dir_tree)?;
         Self::parse_and_insert_localization_keys(&mut connection)?;
@@ -150,6 +151,16 @@ impl Database {
 
     pub fn dir_tree(&self) -> &DirTree {
         &self.dir_tree
+    }
+
+    fn insert_languages(connection: &mut diesel::SqliteConnection) -> Result<()> {
+        for value in Language::values() {
+            diesel::insert_into(schema::language::table)
+                .values(models::NewLanguage { name: value.name() })
+                .execute(connection)?;
+        }
+
+        Ok(())
     }
 
     fn insert_content_types(connection: &mut diesel::SqliteConnection) -> Result<()> {
@@ -218,14 +229,14 @@ impl Database {
         for file in files {
             let path = PathBuf::from(file.full_path);
 
-            // TODO: Sort entries per language in the database.
-            let (_language, keys) = Parser::parse_localization_file(&path)?;
+            let (language, keys) = Parser::parse_localization_file(&path)?;
 
             for (key, value) in keys {
                 let new_key = models::NewLocalizationKey {
                     key: &key,
                     value: &value,
                     file_id: file.id,
+                    language: language.name(),
                 };
 
                 diesel::insert_into(schema::localization_key::table)
