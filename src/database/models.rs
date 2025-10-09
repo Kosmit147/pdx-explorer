@@ -3,9 +3,11 @@
 use diesel::prelude::*;
 
 #[derive(Queryable, Identifiable, Selectable, Debug, Clone, PartialEq)]
-#[diesel(table_name = super::schema::language)]
-#[diesel(primary_key(name))]
-#[diesel(check_for_backend(diesel::sqlite::Sqlite))]
+#[diesel(
+    table_name = super::schema::language,
+    primary_key(name),
+    check_for_backend(diesel::sqlite::Sqlite),
+)]
 pub struct Language {
     pub name: String,
 }
@@ -17,9 +19,11 @@ pub struct NewLanguage<'a> {
 }
 
 #[derive(Queryable, Identifiable, Selectable, Debug, Clone, PartialEq)]
-#[diesel(table_name = super::schema::content_type)]
-#[diesel(primary_key(name))]
-#[diesel(check_for_backend(diesel::sqlite::Sqlite))]
+#[diesel(
+    table_name = super::schema::content_type,
+    primary_key(name),
+    check_for_backend(diesel::sqlite::Sqlite),
+)]
 pub struct ContentType {
     pub name: String,
 }
@@ -31,10 +35,12 @@ pub struct NewContentType<'a> {
 }
 
 #[derive(Queryable, Identifiable, Selectable, Associations, Debug, Clone, PartialEq)]
-#[diesel(table_name = super::schema::directory)]
-#[diesel(primary_key(id))]
-#[diesel(belongs_to(ContentType, foreign_key = content_type))]
-#[diesel(check_for_backend(diesel::sqlite::Sqlite))]
+#[diesel(
+    table_name = super::schema::directory,
+    primary_key(id),
+    belongs_to(ContentType, foreign_key = content_type),
+    check_for_backend(diesel::sqlite::Sqlite),
+)]
 pub struct Directory {
     pub id: i32,
     pub full_path: String,
@@ -54,10 +60,12 @@ pub struct NewDirectory<'a> {
 }
 
 #[derive(Queryable, Identifiable, Selectable, Associations, Debug, Clone, PartialEq)]
-#[diesel(table_name = super::schema::file)]
-#[diesel(primary_key(id))]
-#[diesel(belongs_to(ContentType, foreign_key = content_type))]
-#[diesel(check_for_backend(diesel::sqlite::Sqlite))]
+#[diesel(
+    table_name = super::schema::file,
+    primary_key(id),
+    belongs_to(ContentType, foreign_key = content_type),
+    check_for_backend(diesel::sqlite::Sqlite),
+)]
 pub struct File {
     pub id: i32,
     pub full_path: String,
@@ -67,9 +75,11 @@ pub struct File {
 }
 
 #[derive(Queryable, Identifiable, Selectable, Debug, Clone, PartialEq)]
-#[diesel(table_name = super::schema::file)]
-#[diesel(primary_key(id))]
-#[diesel(check_for_backend(diesel::sqlite::Sqlite))]
+#[diesel(
+    table_name = super::schema::file,
+    primary_key(id),
+    check_for_backend(diesel::sqlite::Sqlite),
+)]
 pub struct FileIdAndPath {
     pub id: i32,
     pub full_path: String,
@@ -86,10 +96,12 @@ pub struct NewFile<'a> {
 }
 
 #[derive(Queryable, Identifiable, Selectable, Associations, Debug, Clone, PartialEq)]
-#[diesel(table_name = super::schema::localization_key)]
-#[diesel(primary_key(key))]
-#[diesel(belongs_to(File, foreign_key = file_id))]
-#[diesel(check_for_backend(diesel::sqlite::Sqlite))]
+#[diesel(
+    table_name = super::schema::localization_key,
+    primary_key(key),
+    belongs_to(File, foreign_key = file_id),
+    check_for_backend(diesel::sqlite::Sqlite),
+)]
 pub struct LocalizationKey {
     pub key: String,
     pub value: String,
