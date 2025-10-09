@@ -1,4 +1,3 @@
-use crate::Database;
 use crate::core::*;
 use crate::database::{self, dir};
 use eframe::egui;
@@ -8,7 +7,7 @@ use std::path::{Path, PathBuf};
 #[serde(default)]
 pub struct Explorer {
     #[serde(skip)]
-    database: Option<Database>,
+    database: Option<database::Database>,
     #[serde(skip)]
     error: Option<Error>,
 
@@ -44,7 +43,7 @@ impl Explorer {
             return;
         };
 
-        let db = match Database::new(path, &db_path) {
+        let db = match database::Database::new(path, &db_path) {
             Ok(db) => db,
             Err(error) => {
                 self.error.replace(error);
@@ -148,14 +147,8 @@ impl Explorer {
         }
     }
 
-    fn central_panel_content(&mut self, ui: &mut egui::Ui) {
+    fn central_panel_content(&mut self, _ui: &mut egui::Ui) {
         // let Some(database) = &self.database else {
-        //     return;
-        // };
-
-        // let Some(localization_key_map) =
-        //     database.localization_database().get(&selected_language)
-        // else {
         //     return;
         // };
 
