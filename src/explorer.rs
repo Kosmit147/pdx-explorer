@@ -1,6 +1,6 @@
 use crate::Database;
 use crate::core::*;
-use crate::database::dir;
+use crate::database::{self, dir};
 use eframe::egui;
 use std::path::{Path, PathBuf};
 
@@ -12,6 +12,7 @@ pub struct Explorer {
     #[serde(skip)]
     error: Option<Error>,
 
+    selected_language: database::Language,
     persistent_string: String,
 }
 
@@ -142,13 +143,12 @@ impl Explorer {
     }
 
     fn right_panel_content(&mut self, ui: &mut egui::Ui) {
-        ui.label("TODO");
+        for value in database::Language::values() {
+            ui.selectable_value(&mut self.selected_language, *value, value.name());
+        }
     }
 
     fn central_panel_content(&mut self, ui: &mut egui::Ui) {
-        // todo: Language selection.
-        // let selected_language = Language::English;
-
         // let Some(database) = &self.database else {
         //     return;
         // };
