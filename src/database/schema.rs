@@ -1,20 +1,18 @@
 // This file must be kept up to date with the init.sql and models.rs files.
 
-use diesel::prelude::*;
-
-table! {
+diesel::table! {
     language (name) {
         name -> Text,
     }
 }
 
-table! {
+diesel::table! {
     content_type (name) {
         name -> Text,
     }
 }
 
-table! {
+diesel::table! {
     directory (id) {
         id -> Integer,
         full_path -> Text,
@@ -24,10 +22,9 @@ table! {
     }
 }
 
-joinable!(directory -> content_type (content_type));
-allow_tables_to_appear_in_same_query!(directory, content_type);
+diesel::joinable!(directory -> content_type (content_type));
 
-table! {
+diesel::table! {
     file (id) {
         id -> Integer,
         full_path -> Text,
@@ -37,10 +34,9 @@ table! {
     }
 }
 
-joinable!(file -> content_type (content_type));
-allow_tables_to_appear_in_same_query!(file, content_type);
+diesel::joinable!(file -> content_type (content_type));
 
-table! {
+diesel::table! {
     localization_key (key) {
         key -> Text,
         value -> Text,
@@ -49,8 +45,13 @@ table! {
     }
 }
 
-joinable!(localization_key -> file (file_id));
-allow_tables_to_appear_in_same_query!(localization_key, file);
+diesel::joinable!(localization_key -> file (file_id));
+diesel::joinable!(localization_key -> language (language));
 
-joinable!(localization_key -> language (language));
-allow_tables_to_appear_in_same_query!(localization_key, language);
+diesel::allow_tables_to_appear_in_same_query!(
+    language,
+    content_type,
+    directory,
+    file,
+    localization_key
+);
