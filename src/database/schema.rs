@@ -3,6 +3,12 @@
 use diesel::prelude::*;
 
 table! {
+    language (name) {
+        name -> Text,
+    }
+}
+
+table! {
     content_type (name) {
         name -> Text,
     }
@@ -39,8 +45,12 @@ table! {
         key -> Text,
         value -> Text,
         file_id -> Integer,
+        language -> Text,
     }
 }
 
 joinable!(localization_key -> file (file_id));
 allow_tables_to_appear_in_same_query!(localization_key, file);
+
+joinable!(localization_key -> language (language));
+allow_tables_to_appear_in_same_query!(localization_key, language);
