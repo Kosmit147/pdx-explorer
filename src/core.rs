@@ -5,14 +5,14 @@ pub type Result<T, E = Error> = result::Result<T, E>;
 #[macro_export]
 macro_rules! error {
     ($($arg:tt)*) => {
-        $crate::Error::new(format!($($arg)*))
+        $crate::core::Error::new(format!($($arg)*))
     };
 }
 
 #[macro_export]
 macro_rules! fail {
     ($($arg:tt)*) => {
-        return $crate::Result::Err(error!($($arg)*))
+        return $crate::core::Result::Err(error!($($arg)*))
     };
 }
 

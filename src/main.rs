@@ -1,6 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")] // Hide console window on Windows in release.
 
-use pdx_explorer::Explorer;
+use pdx_explorer::explorer::Explorer;
 
 fn main() -> eframe::Result {
     eframe::run_native(
