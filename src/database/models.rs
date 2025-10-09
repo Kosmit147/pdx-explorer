@@ -100,6 +100,7 @@ pub struct NewFile<'a> {
     table_name = super::schema::localization_key,
     primary_key(key),
     belongs_to(File, foreign_key = file_id),
+    belongs_to(Language, foreign_key = language),
     check_for_backend(diesel::sqlite::Sqlite),
 )]
 pub struct LocalizationKey {
