@@ -10,6 +10,8 @@ pub struct Explorer {
     database: Option<database::Database>,
     #[serde(skip)]
     error: Option<Error>,
+    #[serde(skip)]
+    cached_localization_keys: Option<Vec<database::models::LocalizationKeyKeyValue>>,
 
     selected_language: database::Language,
     persistent_string: String,
@@ -52,6 +54,27 @@ impl Explorer {
         };
 
         self.database.replace(db);
+
+        if let Err(error) = self.load_localization_keys() {
+            self.error.replace(error);
+        }
+    }
+
+    fn load_localization_keys(&mut self) -> Result<()> {
+        let Some(db) = &mut self.database else {
+            fail!("cannot load localization keys; database is not opened");
+        };
+
+        match db.get_localization_keys_for_language(self.selected_language) {
+            Ok(keys) => {
+                self.cached_localization_keys = Some(keys);
+                Ok(())
+            }
+            Err(error) => {
+                self.cached_localization_keys = None;
+                Err(error)
+            }
+        }
     }
 
     fn ui(&mut self, ctx: &egui::Context) {
@@ -142,44 +165,60 @@ impl Explorer {
     }
 
     fn right_panel_content(&mut self, ui: &mut egui::Ui) {
+        let mut language_changed = false;
+
         for value in database::Language::values() {
-            ui.selectable_value(&mut self.selected_language, *value, value.name());
+            if ui
+                .selectable_value(&mut self.selected_language, *value, value.name())
+                .changed()
+            {
+                language_changed = true;
+            }
+        }
+
+        if language_changed && self.database.is_some() {
+            if let Err(error) = self.load_localization_keys() {
+                self.error.replace(error);
+            }
         }
     }
 
-    fn central_panel_content(&mut self, _ui: &mut egui::Ui) {
-        // let Some(database) = &self.database else {
-        //     return;
-        // };
+    fn central_panel_content(&mut self, ui: &mut egui::Ui) {
+        let Some(localization_keys) = &self.cached_localization_keys else {
+            return;
+        };
 
-        // let available_height = ui.available_height();
+        let available_height = ui.available_height();
 
-        // egui_extras::TableBuilder::new(ui)
-        //     .column(egui_extras::Column::auto())
-        //     .column(egui_extras::Column::remainder())
-        //     .striped(false)
-        //     .resizable(true)
-        //     .max_scroll_height(available_height)
-        //     .header(20.0, |mut header| {
-        //         header.col(|ui| {
-        //             ui.strong("Key");
-        //         });
-        //         header.col(|ui| {
-        //             ui.strong("Value");
-        //         });
-        //     })
-        //     .body(|mut body| {
-        //         for (key, value) in localization_key_map {
-        //             body.row(20.0, |mut row| {
-        //                 row.col(|ui| {
-        //                     ui.label(key);
-        //                 });
-        //                 row.col(|ui| {
-        //                     ui.label(value);
-        //                 });
-        //             });
-        //         }
-        //     });
+        egui_extras::TableBuilder::new(ui)
+            .column(egui_extras::Column::auto())
+            .column(egui_extras::Column::auto())
+            .striped(false)
+            .resizable(true)
+            .max_scroll_height(available_height)
+            .header(20.0, |mut header| {
+                header.col(|ui| {
+                    ui.strong("Key");
+                });
+                header.col(|ui| {
+                    ui.strong("Value");
+                });
+            })
+            .body(|mut body| {
+                for localization_key in localization_keys {
+                    let key = &localization_key.key;
+                    let value = &localization_key.value;
+
+                    body.row(20.0, |mut row| {
+                        row.col(|ui| {
+                            ui.label(key);
+                        });
+                        row.col(|ui| {
+                            ui.label(value);
+                        });
+                    });
+                }
+            });
     }
 }
 
