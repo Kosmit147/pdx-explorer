@@ -80,7 +80,7 @@ pub struct File {
     primary_key(id),
     check_for_backend(diesel::sqlite::Sqlite),
 )]
-pub struct FileIdAndPath {
+pub struct FileIdPath {
     pub id: i32,
     pub full_path: String,
 }
@@ -108,6 +108,17 @@ pub struct LocalizationKey {
     pub value: String,
     pub file_id: i32,
     pub language: String,
+}
+
+#[derive(Queryable, Identifiable, Selectable, Debug, Clone, PartialEq)]
+#[diesel(
+    table_name = super::schema::localization_key,
+    primary_key(key),
+    check_for_backend(diesel::sqlite::Sqlite),
+)]
+pub struct LocalizationKeyKeyValue {
+    pub key: String,
+    pub value: String,
 }
 
 #[derive(Insertable, AsChangeset)]

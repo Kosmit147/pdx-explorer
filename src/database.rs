@@ -1,5 +1,5 @@
 pub mod dir;
-mod models;
+pub mod models;
 mod parser;
 mod schema;
 
@@ -153,6 +153,21 @@ impl Database {
         &self.dir_tree
     }
 
+    pub fn get_localization_keys_for_language(
+        &mut self,
+        language: Language,
+    ) -> Result<Vec<models::LocalizationKeyKeyValue>> {
+        let language = models::Language {
+            name: language.name().to_owned(),
+        };
+
+        let keys = models::LocalizationKey::belonging_to(&language)
+            .select(models::LocalizationKeyKeyValue::as_select())
+            .get_results(&mut self.connection)?;
+
+        Ok(keys)
+    }
+
     fn insert_languages(connection: &mut diesel::SqliteConnection) -> Result<()> {
         for value in Language::values() {
             diesel::insert_into(schema::language::table)
@@ -253,7 +268,7 @@ impl Database {
 
     fn select_localization_files_for_parsing(
         connection: &mut diesel::SqliteConnection,
-    ) -> Result<Vec<models::FileIdAndPath>> {
+    ) -> Result<Vec<models::FileIdPath>> {
         // Localization files are processed in reverse alphabetical order (from Z to A), adding
         // a or 0 at the beginning of the localization file will make sure it is applied last.
 
@@ -263,7 +278,7 @@ impl Database {
 
         let files = models::File::belonging_to(&content_type)
             .order_by(schema::file::file_name.desc())
-            .select(models::FileIdAndPath::as_select())
+            .select(models::FileIdPath::as_select())
             .get_results(connection)?;
 
         Ok(files)
