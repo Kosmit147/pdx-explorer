@@ -40,7 +40,7 @@ impl Error {
         ))
     }
 
-    pub fn description(&self) -> &String {
+    pub fn description(&self) -> &str {
         &self.description
     }
 }
