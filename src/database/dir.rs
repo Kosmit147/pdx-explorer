@@ -117,11 +117,11 @@ impl Node {
 }
 
 #[derive(Debug)]
-pub struct DirTree {
+pub struct Tree {
     root: Node,
 }
 
-impl DirTree {
+impl Tree {
     pub fn new(root: &Path) -> Result<Self> {
         if !root.is_dir() {
             fail!(
@@ -130,7 +130,7 @@ impl DirTree {
             );
         }
 
-        DirTreeBuilder::new(root).build()
+        TreeBuilder::new(root).build()
     }
 
     pub fn root(&self) -> &Node {
@@ -143,13 +143,13 @@ impl DirTree {
 }
 
 // This is meant to be a private builder for use by this module only.
-struct DirTreeBuilder<'a> {
+struct TreeBuilder<'a> {
     root_path: &'a Path,
     dir_ids: std::ops::RangeFrom<u32>,
     file_ids: std::ops::RangeFrom<u32>,
 }
 
-impl<'a> DirTreeBuilder<'a> {
+impl<'a> TreeBuilder<'a> {
     fn new(root: &'a Path) -> Self {
         Self {
             root_path: root,
@@ -158,8 +158,8 @@ impl<'a> DirTreeBuilder<'a> {
         }
     }
 
-    fn build(mut self) -> Result<DirTree> {
-        Ok(DirTree {
+    fn build(mut self) -> Result<Tree> {
+        Ok(Tree {
             root: self.create_node(self.root_path.to_owned())?,
         })
     }

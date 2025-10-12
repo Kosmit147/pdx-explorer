@@ -8,7 +8,6 @@ use diesel::connection::SimpleConnection;
 use diesel::{
     BelongingToDsl, Connection, ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper,
 };
-use dir::DirTree;
 use parser::Parser;
 use std::fmt;
 use std::path::{Path, PathBuf};
@@ -124,14 +123,14 @@ impl fmt::Display for Language {
 
 pub struct Database {
     connection: diesel::SqliteConnection,
-    dir_tree: DirTree,
+    dir_tree: dir::Tree,
 }
 
 impl Database {
     const DATABASE_INIT_SCRIPT: &'static str = include_str!("database/sql/init.sql");
 
     pub fn new(base_path: &Path, database_file_path: &Path) -> Result<Self> {
-        let dir_tree = DirTree::new(base_path)?;
+        let dir_tree = dir::Tree::new(base_path)?;
 
         let mut connection =
             diesel::SqliteConnection::establish(Self::path_to_str(database_file_path)?)?;
@@ -149,7 +148,7 @@ impl Database {
         })
     }
 
-    pub fn dir_tree(&self) -> &DirTree {
+    pub fn dir_tree(&self) -> &dir::Tree {
         &self.dir_tree
     }
 
@@ -190,7 +189,7 @@ impl Database {
 
     fn insert_dir_tree(
         connection: &mut diesel::SqliteConnection,
-        dir_tree: &DirTree,
+        dir_tree: &dir::Tree,
     ) -> Result<()> {
         Self::insert_node(connection, dir_tree.root())
     }

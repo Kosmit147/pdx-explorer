@@ -99,10 +99,10 @@ impl Explorer {
     fn ui(&mut self, ctx: &egui::Context) {
         egui::TopBottomPanel::top("top panel").show(ctx, |ui| {
             let dir = self.database.as_ref().map(|db| db.dir_tree().root_path());
-            let new_dir = self.top_bar.ui(ui, dir);
+            let picked_dir = self.top_bar.ui(ui, dir);
 
-            if let Some(dir_path) = new_dir {
-                self.set_directory(&dir_path);
+            if let Some(path) = picked_dir {
+                self.set_directory(&path);
             }
         });
 
