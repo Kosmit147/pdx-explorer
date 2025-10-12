@@ -9,29 +9,19 @@ enum CachedData {
     LocalizationKeys(Vec<database::models::LocalizationKeyKeyValue>),
 }
 
-#[derive(Default, serde::Deserialize, serde::Serialize)]
-#[serde(default)]
+#[derive(Default)]
 pub struct Explorer {
-    #[serde(skip)]
     database: Option<database::Database>,
-    #[serde(skip)]
     error: Option<Error>,
 
-    #[serde(skip)]
     top_bar: ui::TopBar,
-    #[serde(skip)]
     bottom_bar: ui::BottomBar,
-    #[serde(skip)]
     file_browser: ui::FileBrowser,
-    #[serde(skip)]
     language_select: ui::LanguageSelect,
-    #[serde(skip)]
     data_browser: ui::DataBrowser,
 
-    #[serde(skip)]
     selected_language: database::Language,
 
-    #[serde(skip)]
     cached_data: Option<CachedData>,
 }
 
@@ -39,13 +29,16 @@ impl Explorer {
     pub const APP_ID: &'static str = "pdx-explorer";
     const DATABASE_FILE_NAME: &'static str = "db.sqlite3";
 
-    pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
+    pub fn new(_cc: &eframe::CreationContext<'_>) -> Self {
+        // TODO: Restore app state from previous session.
         // Try to restore the app state from previous session.
-        if let Some(storage) = cc.storage {
-            eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default()
-        } else {
-            Default::default()
-        }
+        // if let Some(storage) = cc.storage {
+        //     eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default()
+        // } else {
+        //     Default::default()
+        // }
+
+        Default::default()
     }
 
     fn storage_dir() -> Option<PathBuf> {
@@ -137,8 +130,9 @@ impl eframe::App for Explorer {
         self.ui(ctx);
     }
 
-    fn save(&mut self, storage: &mut dyn eframe::Storage) {
+    fn save(&mut self, _storage: &mut dyn eframe::Storage) {
+        // TODO: Save the app state.
         // Save the app state.
-        eframe::set_value(storage, eframe::APP_KEY, self);
+        // eframe::set_value(storage, eframe::APP_KEY, self);
     }
 }
