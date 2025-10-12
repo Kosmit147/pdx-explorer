@@ -1,7 +1,13 @@
+mod ui;
+
 use crate::core::*;
-use crate::database::{self, dir};
+use crate::database;
 use eframe::egui;
 use std::path::{Path, PathBuf};
+
+enum CachedData {
+    LocalizationKeys(Vec<database::models::LocalizationKeyKeyValue>),
+}
 
 #[derive(Default, serde::Deserialize, serde::Serialize)]
 #[serde(default)]
@@ -10,11 +16,23 @@ pub struct Explorer {
     database: Option<database::Database>,
     #[serde(skip)]
     error: Option<Error>,
-    #[serde(skip)]
-    cached_localization_keys: Option<Vec<database::models::LocalizationKeyKeyValue>>,
 
+    #[serde(skip)]
+    top_bar: ui::TopBar,
+    #[serde(skip)]
+    bottom_bar: ui::BottomBar,
+    #[serde(skip)]
+    file_browser: ui::FileBrowser,
+    #[serde(skip)]
+    language_select: ui::LanguageSelect,
+    #[serde(skip)]
+    data_browser: ui::DataBrowser,
+
+    #[serde(skip)]
     selected_language: database::Language,
-    persistent_string: String,
+
+    #[serde(skip)]
+    cached_data: Option<CachedData>,
 }
 
 impl Explorer {
@@ -60,6 +78,7 @@ impl Explorer {
         }
     }
 
+    // This function shouldn't be called unless the database is opened.
     fn load_localization_keys(&mut self) -> Result<()> {
         let Some(db) = &mut self.database else {
             fail!("cannot load localization keys; database is not opened");
@@ -67,11 +86,11 @@ impl Explorer {
 
         match db.get_localization_keys_for_language(self.selected_language) {
             Ok(keys) => {
-                self.cached_localization_keys = Some(keys);
+                self.cached_data = Some(CachedData::LocalizationKeys(keys));
                 Ok(())
             }
             Err(error) => {
-                self.cached_localization_keys = None;
+                self.cached_data = None;
                 Err(error)
             }
         }
@@ -79,146 +98,37 @@ impl Explorer {
 
     fn ui(&mut self, ctx: &egui::Context) {
         egui::TopBottomPanel::top("top panel").show(ctx, |ui| {
-            self.top_panel_content(ui);
+            let dir = self.database.as_ref().map(|db| db.dir_tree().root_path());
+            let new_dir = self.top_bar.ui(ui, dir);
+
+            if let Some(dir_path) = new_dir {
+                self.set_directory(&dir_path);
+            }
         });
 
         egui::TopBottomPanel::bottom("bottom panel").show(ctx, |ui| {
-            self.bottom_panel_content(ui);
+            self.bottom_bar.ui(ui, self.error.as_ref());
         });
 
         egui::SidePanel::left("left panel").show(ctx, |ui| {
-            self.left_panel_content(ui);
+            let dir_tree = self.database.as_ref().map(|db| db.dir_tree());
+            self.file_browser.ui(ui, dir_tree);
         });
 
         egui::SidePanel::right("right panel").show(ctx, |ui| {
-            self.right_panel_content(ui);
+            #[allow(clippy::collapsible_if)]
+            if self.language_select.ui(ui, &mut self.selected_language) {
+                if self.database.is_some()
+                    && let Err(error) = self.load_localization_keys()
+                {
+                    self.error.replace(error);
+                }
+            }
         });
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            self.central_panel_content(ui);
+            self.data_browser.ui(ui, self.cached_data.as_ref());
         });
-    }
-
-    fn top_panel_content(&mut self, ui: &mut egui::Ui) {
-        ui.horizontal(|ui| {
-            ui.label("Pdx Explorer");
-
-            ui.separator();
-
-            if ui.button("Open Game/Mod Directory").clicked()
-                && let Some(path) = rfd::FileDialog::new().pick_folder()
-            {
-                self.set_directory(&path);
-            }
-
-            if let Some(db) = &self.database {
-                ui.label(format!(
-                    "Selected path: {}",
-                    db.dir_tree().root_path().display()
-                ));
-            }
-        });
-    }
-
-    fn bottom_panel_content(&mut self, ui: &mut egui::Ui) {
-        if let Some(error) = &self.error {
-            ui.colored_label(
-                egui::Color32::YELLOW,
-                format!("Error: {}.", error.description()),
-            );
-        }
-    }
-
-    fn dir_tree(ui: &mut egui::Ui, node: &dir::Node) {
-        match node {
-            dir::Node::Directory(dir) => {
-                egui::CollapsingHeader::new(format!(
-                    "{} (ct: {}, id: {})",
-                    dir.dir_name().display(),
-                    dir.content_type(),
-                    dir.id()
-                ))
-                .show(ui, |ui| {
-                    for child in dir.children() {
-                        Self::dir_tree(ui, child);
-                    }
-                });
-            }
-            dir::Node::File(file) => {
-                ui.label(format!(
-                    "{} (ct: {}, id: {})",
-                    file.file_name().display(),
-                    file.content_type(),
-                    file.id()
-                ));
-            }
-        }
-    }
-
-    fn left_panel_content(&mut self, ui: &mut egui::Ui) {
-        ui.text_edit_singleline(&mut self.persistent_string)
-            .on_hover_text("The value in this field should persist.");
-
-        if let Some(db) = &self.database {
-            Self::dir_tree(ui, db.dir_tree().root());
-        }
-    }
-
-    fn right_panel_content(&mut self, ui: &mut egui::Ui) {
-        let mut language_changed = false;
-
-        for value in database::Language::values() {
-            if ui
-                .selectable_value(&mut self.selected_language, *value, value.name())
-                .changed()
-            {
-                language_changed = true;
-            }
-        }
-
-        if language_changed && self.database.is_some() {
-            if let Err(error) = self.load_localization_keys() {
-                self.error.replace(error);
-            }
-        }
-    }
-
-    fn central_panel_content(&mut self, ui: &mut egui::Ui) {
-        let Some(localization_keys) = &self.cached_localization_keys else {
-            return;
-        };
-
-        let available_height = ui.available_height();
-
-        egui_extras::TableBuilder::new(ui)
-            .column(egui_extras::Column::auto())
-            .column(egui_extras::Column::auto())
-            .striped(false)
-            .resizable(true)
-            .max_scroll_height(available_height)
-            .header(20.0, |mut header| {
-                header.col(|ui| {
-                    ui.strong("Key");
-                });
-                header.col(|ui| {
-                    ui.strong("Value");
-                });
-            })
-            .body(|mut body| {
-                for localization_key in localization_keys {
-                    let key = &localization_key.key;
-                    let value = &localization_key.value;
-
-                    body.row(20.0, |mut row| {
-                        row.col(|ui| {
-                            ui.label(key);
-                        });
-                        row.col(|ui| {
-                            ui.label(value);
-                        });
-                    });
-                }
-            });
     }
 }
 
