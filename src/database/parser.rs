@@ -3,6 +3,11 @@ use crate::database::Language;
 use std::fs;
 use std::path::Path;
 
+pub struct LocalizationKey {
+    pub key: String,
+    pub value: String,
+}
+
 #[derive(Debug, Default)]
 pub struct Parser {}
 
@@ -10,7 +15,7 @@ impl Parser {
     const LOCALIZATION_FILE_COMMENT_DELIMITER: char = '#';
 
     // TODO: This function shouldn't take in a path (it should take in file contents or a reader).
-    pub fn parse_localization_file(path: &Path) -> Result<(Language, Vec<(String, String)>)> {
+    pub fn parse_localization_file(path: &Path) -> Result<(Language, Box<[LocalizationKey]>)> {
         // This is how a localization file looks like:
         //
         // l_english:
@@ -78,14 +83,14 @@ impl Parser {
             keys.push(Self::parse_localization_file_line(line_number, line, path)?);
         }
 
-        Ok((language, keys))
+        Ok((language, keys.into_boxed_slice()))
     }
 
     fn parse_localization_file_line(
         line_number: usize,
         line: &str,
         path: &Path,
-    ) -> Result<(String, String)> {
+    ) -> Result<LocalizationKey> {
         let make_error = || {
             Error::with_file_reference(
                 path,
@@ -122,6 +127,7 @@ impl Parser {
 
         let key = before_colon.to_owned();
         let value: String = after_colon_chars.collect();
-        Ok((key, value))
+
+        Ok(LocalizationKey { key, value })
     }
 }

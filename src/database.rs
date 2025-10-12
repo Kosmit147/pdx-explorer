@@ -155,7 +155,7 @@ impl Database {
     pub fn get_localization_keys_for_language(
         &mut self,
         language: Language,
-    ) -> Result<Vec<models::LocalizationKeyKeyValue>> {
+    ) -> Result<Box<[models::LocalizationKeyKeyValue]>> {
         let language = models::Language {
             name: language.name().to_owned(),
         };
@@ -164,7 +164,7 @@ impl Database {
             .select(models::LocalizationKeyKeyValue::as_select())
             .get_results(&mut self.connection)?;
 
-        Ok(keys)
+        Ok(keys.into_boxed_slice())
     }
 
     fn insert_languages(connection: &mut diesel::SqliteConnection) -> Result<()> {
@@ -245,10 +245,10 @@ impl Database {
 
             let (language, keys) = Parser::parse_localization_file(&path)?;
 
-            for (key, value) in keys {
+            for key in keys {
                 let new_key = models::NewLocalizationKey {
-                    key: &key,
-                    value: &value,
+                    key: &key.key,
+                    value: &key.value,
                     file_id: file.id,
                     language: language.name(),
                 };
@@ -267,7 +267,7 @@ impl Database {
 
     fn select_localization_files_for_parsing(
         connection: &mut diesel::SqliteConnection,
-    ) -> Result<Vec<models::FileIdPath>> {
+    ) -> Result<Box<[models::FileIdPath]>> {
         // Localization files are processed in reverse alphabetical order (from Z to A), adding
         // a or 0 at the beginning of the localization file will make sure it is applied last.
 
@@ -280,7 +280,7 @@ impl Database {
             .select(models::FileIdPath::as_select())
             .get_results(connection)?;
 
-        Ok(files)
+        Ok(files.into_boxed_slice())
     }
 
     // Helper function which returns a Result instead of Option.
