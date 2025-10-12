@@ -6,7 +6,7 @@ use eframe::egui;
 use std::path::{Path, PathBuf};
 
 enum CachedData {
-    LocalizationKeys(Vec<database::models::LocalizationKeyKeyValue>),
+    LocalizationKeys(Box<[database::models::LocalizationKeyKeyValue]>),
 }
 
 #[derive(Default)]

@@ -12,7 +12,7 @@ pub struct Directory {
     content_type: ContentType,
     id: u32,
 
-    children: Vec<Node>,
+    children: Box<[Node]>,
 }
 
 impl Directory {
@@ -200,7 +200,7 @@ impl<'a> TreeBuilder<'a> {
         }
     }
 
-    fn create_children_nodes(&mut self, path: &Path) -> Result<Vec<Node>> {
+    fn create_children_nodes(&mut self, path: &Path) -> Result<Box<[Node]>> {
         let mut children = Vec::new();
 
         for child in fs::read_dir(path)? {
@@ -210,8 +210,7 @@ impl<'a> TreeBuilder<'a> {
             children.push(child_node);
         }
 
-        children.shrink_to_fit();
-        Ok(children)
+        Ok(children.into_boxed_slice())
     }
 
     // The given path must be relative to the root of the dir tree.
