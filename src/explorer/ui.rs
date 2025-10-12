@@ -10,7 +10,7 @@ pub struct TopBar {}
 impl TopBar {
     #[must_use]
     pub fn ui(&mut self, ui: &mut egui::Ui, dir: Option<&Path>) -> Option<PathBuf> {
-        let mut new_dir = None;
+        let mut picked_dir = None;
 
         ui.horizontal(|ui| {
             ui.label("Pdx Explorer");
@@ -20,7 +20,7 @@ impl TopBar {
             if ui.button("Open Game/Mod Directory").clicked()
                 && let Some(path) = rfd::FileDialog::new().pick_folder()
             {
-                new_dir = Some(path);
+                picked_dir = Some(path);
             }
 
             if let Some(dir) = dir {
@@ -28,7 +28,7 @@ impl TopBar {
             }
         });
 
-        new_dir
+        picked_dir
     }
 }
 
@@ -50,13 +50,13 @@ impl BottomBar {
 pub struct FileBrowser {}
 
 impl FileBrowser {
-    pub fn ui(&mut self, ui: &mut egui::Ui, dir_tree: Option<&dir::DirTree>) {
-        if let Some(dir_tree) = dir_tree {
-            Self::dir_tree(ui, dir_tree.root());
+    pub fn ui(&mut self, ui: &mut egui::Ui, tree: Option<&dir::Tree>) {
+        if let Some(tree) = tree {
+            Self::tree(ui, tree.root());
         }
     }
 
-    fn dir_tree(ui: &mut egui::Ui, node: &dir::Node) {
+    fn tree(ui: &mut egui::Ui, node: &dir::Node) {
         match node {
             dir::Node::Directory(dir) => {
                 egui::CollapsingHeader::new(format!(
@@ -67,7 +67,7 @@ impl FileBrowser {
                 ))
                 .show(ui, |ui| {
                     for child in dir.children() {
-                        Self::dir_tree(ui, child);
+                        Self::tree(ui, child);
                     }
                 });
             }
