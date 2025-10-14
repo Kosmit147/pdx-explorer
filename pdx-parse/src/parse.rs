@@ -62,7 +62,7 @@ pub fn parse_localization_file(file: impl Read) -> Result<(Localization, Box<[Lo
 fn get_localization_specifier_line(
     lines: &mut impl Iterator<Item = (usize, io::Result<String>)>,
 ) -> Result<(usize, String)> {
-    while let Some((line_number, line)) = lines.next() {
+    for (line_number, line) in lines {
         let line = line.with_context(|| line_context(line_number))?;
 
         if let Some(line) = filter_localization_file_line(line) {
