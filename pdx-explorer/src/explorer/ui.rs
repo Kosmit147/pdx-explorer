@@ -1,10 +1,11 @@
-use crate::core::*;
 use crate::database::{self, dir};
 use crate::explorer::CachedData;
+use anyhow::Error;
 use eframe::egui;
+use pdx_parse::Localization;
 use std::path::{Path, PathBuf};
 
-#[derive(Default)]
+#[derive(Debug, Clone, Default)]
 pub struct TopBar {}
 
 impl TopBar {
@@ -32,21 +33,18 @@ impl TopBar {
     }
 }
 
-#[derive(Default)]
+#[derive(Debug, Clone, Default)]
 pub struct BottomBar {}
 
 impl BottomBar {
     pub fn ui(&mut self, ui: &mut egui::Ui, error: Option<&Error>) {
         if let Some(error) = error {
-            ui.colored_label(
-                egui::Color32::YELLOW,
-                format!("Error: {}.", error.description()),
-            );
+            ui.colored_label(egui::Color32::YELLOW, format!("Error: {:#}", error));
         }
     }
 }
 
-#[derive(Default)]
+#[derive(Debug, Clone, Default)]
 pub struct FileBrowser {}
 
 impl FileBrowser {
@@ -83,16 +81,16 @@ impl FileBrowser {
     }
 }
 
-#[derive(Default)]
-pub struct LanguageSelect {}
+#[derive(Debug, Clone, Default)]
+pub struct LocalizationSelect {}
 
-impl LanguageSelect {
-    pub fn ui(&mut self, ui: &mut egui::Ui, language: &mut database::Language) -> bool {
+impl LocalizationSelect {
+    pub fn ui(&mut self, ui: &mut egui::Ui, localization: &mut Localization) -> bool {
         let mut value_changed = false;
 
-        for value in database::Language::values() {
+        for value in Localization::values() {
             value_changed |= ui
-                .selectable_value(language, *value, value.name())
+                .selectable_value(localization, *value, value.name())
                 .changed();
         }
 
@@ -100,7 +98,7 @@ impl LanguageSelect {
     }
 }
 
-#[derive(Default)]
+#[derive(Debug, Clone, Default)]
 pub struct DataBrowser {}
 
 impl DataBrowser {

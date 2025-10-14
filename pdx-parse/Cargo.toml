@@ -1,0 +1,10 @@
+[package]
+name = "pdx-parse"
+version = "0.1.0"
+license = "MIT"
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0.100"
+thiserror = "2.0.17"
+unicode-bom = "2.0.3"

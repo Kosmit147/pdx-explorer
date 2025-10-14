@@ -1,7 +1,16 @@
-use crate::core::*;
-use crate::database::ContentType;
+use anyhow::{Context, Result, ensure};
+use pdx_parse::ContentType;
 use std::fs;
 use std::path::{Path, PathBuf};
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+pub enum DirError {
+    #[error("Root path `{0}` is not a directory")]
+    TreeRootPathIsNotADirectory(PathBuf),
+    #[error("Failed to extract file name from path `{0}`")]
+    FailedToExtractFileName(PathBuf),
+}
 
 #[derive(Debug)]
 pub struct Directory {
@@ -123,14 +132,17 @@ pub struct Tree {
 
 impl Tree {
     pub fn new(root: &Path) -> Result<Self> {
-        if !root.is_dir() {
-            fail!(
-                "root path `{}` doesn't point to a directory",
-                root.display()
-            );
-        }
+        ensure!(
+            root.is_dir(),
+            DirError::TreeRootPathIsNotADirectory(root.to_path_buf())
+        );
 
-        TreeBuilder::new(root).build()
+        TreeBuilder::new(root).build().with_context(|| {
+            format!(
+                "While building a directory tree with root path `{}`",
+                root.display()
+            )
+        })
     }
 
     pub fn root(&self) -> &Node {
@@ -166,11 +178,11 @@ impl<'a> TreeBuilder<'a> {
 
     fn create_node(&mut self, path: PathBuf) -> Result<Node> {
         let relative_path = path.strip_prefix(self.root_path)?.to_path_buf();
-        let file_name =
-            PathBuf::from(path.file_name().ok_or_else(|| {
-                error!("failed to extract file name from path `{}`", path.display())
-            })?);
-        let content_type = Self::get_content_type_from_relative_path(&relative_path)?;
+        let file_name = PathBuf::from(
+            path.file_name()
+                .ok_or_else(|| DirError::FailedToExtractFileName(path.to_path_buf()))?,
+        );
+        let content_type = Self::get_content_type_from_relative_path(&relative_path);
 
         if path.is_dir() {
             let id = self.dir_ids.next().unwrap();
@@ -214,11 +226,11 @@ impl<'a> TreeBuilder<'a> {
     }
 
     // The given path must be relative to the root of the dir tree.
-    fn get_content_type_from_relative_path(relative_path: &Path) -> Result<ContentType> {
-        Ok(if relative_path.starts_with("localization") {
+    fn get_content_type_from_relative_path(relative_path: &Path) -> ContentType {
+        if relative_path.starts_with("localization") {
             ContentType::Localization
         } else {
             ContentType::Indeterminate
-        })
+        }
     }
 }

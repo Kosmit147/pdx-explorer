@@ -1,10 +1,21 @@
 mod ui;
 
-use crate::core::*;
 use crate::database;
+use anyhow::{Context, Error, Result, anyhow, bail};
 use eframe::egui;
+use pdx_parse::Localization;
 use std::path::{Path, PathBuf};
+use thiserror::Error;
 
+#[derive(Debug, Error)]
+enum ExplorerError {
+    #[error("Failed to obtain a path to the database file")]
+    FailedToObtainAPathToTheDatabase,
+    #[error("Database is not opened")]
+    DatabaseNotOpen,
+}
+
+#[derive(Debug, Clone)]
 enum CachedData {
     LocalizationKeys(Box<[database::models::LocalizationKeyKeyValue]>),
 }
@@ -17,10 +28,10 @@ pub struct Explorer {
     top_bar: ui::TopBar,
     bottom_bar: ui::BottomBar,
     file_browser: ui::FileBrowser,
-    language_select: ui::LanguageSelect,
+    localization_select: ui::LocalizationSelect,
     data_browser: ui::DataBrowser,
 
-    selected_language: database::Language,
+    selected_localization: Localization,
 
     cached_data: Option<CachedData>,
 }
@@ -30,7 +41,7 @@ impl Explorer {
     const DATABASE_FILE_NAME: &'static str = "db.sqlite3";
 
     pub fn new(_cc: &eframe::CreationContext<'_>) -> Self {
-        // TODO: Restore app state from previous session.
+        // TODO: Restore the app state from previous session.
         // Try to restore the app state from previous session.
         // if let Some(storage) = cc.storage {
         //     eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default()
@@ -52,11 +63,16 @@ impl Explorer {
     fn set_directory(&mut self, path: &Path) {
         let Some(db_path) = Self::database_file_path() else {
             self.error
-                .replace(error!("failed to obtain a path to the database file"));
+                .replace(anyhow!(ExplorerError::FailedToObtainAPathToTheDatabase));
             return;
         };
 
-        let db = match database::Database::new(path, &db_path) {
+        let db = match database::Database::new(path, &db_path).with_context(|| {
+            format!(
+                "While creating the database for directory `{}`",
+                path.display()
+            )
+        }) {
             Ok(db) => db,
             Err(error) => {
                 self.error.replace(error);
@@ -66,18 +82,23 @@ impl Explorer {
 
         self.database.replace(db);
 
-        if let Err(error) = self.load_localization_keys() {
+        if let Err(error) = self
+            .load_localization_keys()
+            .with_context(|| "While loading localization keys")
+        {
             self.error.replace(error);
         }
     }
 
     // This function shouldn't be called unless the database is opened.
     fn load_localization_keys(&mut self) -> Result<()> {
+        debug_assert!(self.database.is_some());
+
         let Some(db) = &mut self.database else {
-            fail!("cannot load localization keys; database is not opened");
+            bail!(ExplorerError::DatabaseNotOpen);
         };
 
-        match db.get_localization_keys_for_language(self.selected_language) {
+        match db.get_keys_for_localization(self.selected_localization) {
             Ok(keys) => {
                 self.cached_data = Some(CachedData::LocalizationKeys(keys));
                 Ok(())
@@ -110,7 +131,10 @@ impl Explorer {
 
         egui::SidePanel::right("right panel").show(ctx, |ui| {
             #[allow(clippy::collapsible_if)]
-            if self.language_select.ui(ui, &mut self.selected_language) {
+            if self
+                .localization_select
+                .ui(ui, &mut self.selected_localization)
+            {
                 if self.database.is_some()
                     && let Err(error) = self.load_localization_keys()
                 {

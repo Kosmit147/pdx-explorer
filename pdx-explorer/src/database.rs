@@ -1,124 +1,22 @@
 pub mod dir;
 pub mod models;
-mod parser;
 mod schema;
 
-use crate::core::*;
+use anyhow::{Context, Result, bail};
 use diesel::connection::SimpleConnection;
 use diesel::{
     BelongingToDsl, Connection, ExpressionMethods, QueryDsl, RunQueryDsl, SelectableHelper,
 };
-use parser::Parser;
-use std::fmt;
+use pdx_parse::parse;
+use pdx_parse::{ContentType, Localization};
+use std::fs;
 use std::path::{Path, PathBuf};
+use thiserror::Error;
 
-#[derive(Debug, Clone, Copy, serde::Deserialize, serde::Serialize)]
-pub enum ContentType {
-    Localization,
-    Indeterminate,
-}
-
-impl ContentType {
-    pub fn name(&self) -> &'static str {
-        match self {
-            Self::Localization => "Localization",
-            Self::Indeterminate => "Indeterminate",
-        }
-    }
-
-    pub fn values() -> &'static [Self] {
-        &[Self::Localization, Self::Indeterminate]
-    }
-}
-
-impl Default for ContentType {
-    fn default() -> Self {
-        Self::Indeterminate
-    }
-}
-
-impl fmt::Display for ContentType {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.name())
-    }
-}
-
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
-pub enum Language {
-    English,
-    BrazilianPortuguese,
-    French,
-    German,
-    Polish,
-    Russian,
-    Spanish,
-    Japanese,
-    SimplifiedChinese,
-    Korean,
-    Turkish,
-}
-
-impl Language {
-    pub fn from_language_specifier(specifier: &str) -> Option<Self> {
-        match specifier {
-            "l_english" => Some(Self::English),
-            "l_braz_por" => Some(Self::BrazilianPortuguese),
-            "l_french" => Some(Self::French),
-            "l_german" => Some(Self::German),
-            "l_polish" => Some(Self::Polish),
-            "l_russian" => Some(Self::Russian),
-            "l_spanish" => Some(Self::Spanish),
-            "l_japanese" => Some(Self::Japanese),
-            "l_simp_chinese" => Some(Self::SimplifiedChinese),
-            "l_korean" => Some(Self::Korean),
-            "l_turkish" => Some(Self::Turkish),
-            _ => None,
-        }
-    }
-
-    pub fn name(&self) -> &'static str {
-        match self {
-            Self::English => "English",
-            Self::BrazilianPortuguese => "Brazilian Portuguese",
-            Self::French => "French",
-            Self::German => "German",
-            Self::Polish => "Polish",
-            Self::Russian => "Russian",
-            Self::Spanish => "Spanish",
-            Self::Japanese => "Japanese",
-            Self::SimplifiedChinese => "Simplified Chinese",
-            Self::Korean => "Korean",
-            Self::Turkish => "Turkish",
-        }
-    }
-
-    pub fn values() -> &'static [Self] {
-        &[
-            Self::English,
-            Self::BrazilianPortuguese,
-            Self::French,
-            Self::German,
-            Self::Polish,
-            Self::Russian,
-            Self::Spanish,
-            Self::Japanese,
-            Self::SimplifiedChinese,
-            Self::Korean,
-            Self::Turkish,
-        ]
-    }
-}
-
-impl Default for Language {
-    fn default() -> Self {
-        Self::English
-    }
-}
-
-impl fmt::Display for Language {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.name())
-    }
+#[derive(Debug, Error)]
+pub enum DatabaseError {
+    #[error("Path `{0}` contains invalid UTF-8")]
+    PathContainsInvalidUtf8(PathBuf),
 }
 
 pub struct Database {
@@ -130,17 +28,32 @@ impl Database {
     const DATABASE_INIT_SCRIPT: &'static str = include_str!("database/sql/init.sql");
 
     pub fn new(base_path: &Path, database_file_path: &Path) -> Result<Self> {
-        let dir_tree = dir::Tree::new(base_path)?;
+        let dir_tree = dir::Tree::new(base_path).with_context(|| {
+            format!(
+                "While creating a directory tree with root path `{}`",
+                base_path.display()
+            )
+        })?;
 
-        let mut connection =
-            diesel::SqliteConnection::establish(Self::path_to_str(database_file_path)?)?;
+        let connection_context = || "While establishing a connection with the database";
 
-        connection.batch_execute(Self::DATABASE_INIT_SCRIPT)?;
+        let mut connection = diesel::SqliteConnection::establish(
+            Self::path_to_str(database_file_path).with_context(connection_context)?,
+        )
+        .with_context(connection_context)?;
 
-        Self::insert_languages(&mut connection)?;
-        Self::insert_content_types(&mut connection)?;
-        Self::insert_dir_tree(&mut connection, &dir_tree)?;
-        Self::parse_and_insert_localization_keys(&mut connection)?;
+        connection
+            .batch_execute(Self::DATABASE_INIT_SCRIPT)
+            .with_context(|| "While initializing the database")?;
+
+        Self::insert_localizations(&mut connection)
+            .with_context(|| "While inserting localizations")?;
+        Self::insert_content_types(&mut connection)
+            .with_context(|| "While inserting content types")?;
+        Self::insert_dir_tree(&mut connection, &dir_tree)
+            .with_context(|| "While inserting directory tree")?;
+
+        Self::parse_localization(&mut connection).with_context(|| "While parsing localization")?;
 
         Ok(Self {
             connection,
@@ -152,25 +65,25 @@ impl Database {
         &self.dir_tree
     }
 
-    pub fn get_localization_keys_for_language(
+    pub fn get_keys_for_localization(
         &mut self,
-        language: Language,
+        localization: Localization,
     ) -> Result<Box<[models::LocalizationKeyKeyValue]>> {
-        let language = models::Language {
-            name: language.name().to_owned(),
+        let localization = models::Localization {
+            name: localization.name().to_owned(),
         };
 
-        let keys = models::LocalizationKey::belonging_to(&language)
+        let keys = models::LocalizationKey::belonging_to(&localization)
             .select(models::LocalizationKeyKeyValue::as_select())
             .get_results(&mut self.connection)?;
 
         Ok(keys.into_boxed_slice())
     }
 
-    fn insert_languages(connection: &mut diesel::SqliteConnection) -> Result<()> {
-        for value in Language::values() {
-            diesel::insert_into(schema::language::table)
-                .values(models::NewLanguage { name: value.name() })
+    fn insert_localizations(connection: &mut diesel::SqliteConnection) -> Result<()> {
+        for value in Localization::values() {
+            diesel::insert_into(schema::localization::table)
+                .values(models::NewLocalization { name: value.name() })
                 .execute(connection)?;
         }
 
@@ -227,7 +140,7 @@ impl Database {
         Ok(())
     }
 
-    fn parse_and_insert_localization_keys(connection: &mut diesel::SqliteConnection) -> Result<()> {
+    fn parse_localization(connection: &mut diesel::SqliteConnection) -> Result<()> {
         // The rules for parsing localization keys are as follows:
         //
         // 1. Localization files must be .yml format encoded in UTF-8-BOM. Otherwise, the game
@@ -240,17 +153,28 @@ impl Database {
 
         let files = Self::select_localization_files_for_parsing(connection)?;
 
-        for file in files {
-            let path = PathBuf::from(file.full_path);
+        for file_description in files {
+            let mut file = fs::File::open(&file_description.full_path).with_context(|| {
+                format!(
+                    "While opening localization file `{}` for parsing",
+                    &file_description.full_path
+                )
+            })?;
 
-            let (language, keys) = Parser::parse_localization_file(&path)?;
+            let (localization, keys) =
+                parse::parse_localization_file(&mut file).with_context(|| {
+                    format!(
+                        "While parsing localization file `{}`",
+                        &file_description.full_path
+                    )
+                })?;
 
             for key in keys {
                 let new_key = models::NewLocalizationKey {
                     key: &key.key,
                     value: &key.value,
-                    file_id: file.id,
-                    language: language.name(),
+                    file_id: file_description.id,
+                    localization: localization.name(),
                 };
 
                 diesel::insert_into(schema::localization_key::table)
@@ -285,7 +209,10 @@ impl Database {
 
     // Helper function which returns a Result instead of Option.
     fn path_to_str(path: &Path) -> Result<&str> {
-        path.to_str()
-            .ok_or_else(|| error!("path `{}` contains invalid UTF-8", path.display()))
+        let Some(path) = path.to_str() else {
+            bail!(DatabaseError::PathContainsInvalidUtf8(path.to_path_buf()))
+        };
+
+        Ok(path)
     }
 }
