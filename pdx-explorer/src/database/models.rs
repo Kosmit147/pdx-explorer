@@ -2,23 +2,27 @@
 
 use diesel::prelude::*;
 
-#[derive(Queryable, Identifiable, Selectable, Debug, Clone, PartialEq)]
+#[derive(
+    Queryable, Identifiable, Selectable, Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash,
+)]
 #[diesel(
-    table_name = super::schema::language,
+    table_name = super::schema::localization,
     primary_key(name),
     check_for_backend(diesel::sqlite::Sqlite),
 )]
-pub struct Language {
+pub struct Localization {
     pub name: String,
 }
 
-#[derive(Insertable, AsChangeset)]
-#[diesel(table_name = super::schema::language)]
-pub struct NewLanguage<'a> {
+#[derive(Insertable, AsChangeset, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[diesel(table_name = super::schema::localization)]
+pub struct NewLocalization<'a> {
     pub name: &'a str,
 }
 
-#[derive(Queryable, Identifiable, Selectable, Debug, Clone, PartialEq)]
+#[derive(
+    Queryable, Identifiable, Selectable, Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash,
+)]
 #[diesel(
     table_name = super::schema::content_type,
     primary_key(name),
@@ -28,13 +32,13 @@ pub struct ContentType {
     pub name: String,
 }
 
-#[derive(Insertable, AsChangeset)]
+#[derive(Insertable, AsChangeset, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[diesel(table_name = super::schema::content_type)]
 pub struct NewContentType<'a> {
     pub name: &'a str,
 }
 
-#[derive(Queryable, Identifiable, Selectable, Associations, Debug, Clone, PartialEq)]
+#[derive(Queryable, Identifiable, Selectable, Associations, Debug, Clone, PartialEq, Eq)]
 #[diesel(
     table_name = super::schema::directory,
     primary_key(id),
@@ -49,7 +53,7 @@ pub struct Directory {
     pub content_type: String,
 }
 
-#[derive(Insertable, AsChangeset)]
+#[derive(Insertable, AsChangeset, Debug, PartialEq, Eq)]
 #[diesel(table_name = super::schema::directory)]
 pub struct NewDirectory<'a> {
     pub id: i32,
@@ -59,7 +63,7 @@ pub struct NewDirectory<'a> {
     pub content_type: &'a str,
 }
 
-#[derive(Queryable, Identifiable, Selectable, Associations, Debug, Clone, PartialEq)]
+#[derive(Queryable, Identifiable, Selectable, Associations, Debug, Clone, PartialEq, Eq)]
 #[diesel(
     table_name = super::schema::file,
     primary_key(id),
@@ -74,7 +78,7 @@ pub struct File {
     pub content_type: String,
 }
 
-#[derive(Queryable, Identifiable, Selectable, Debug, Clone, PartialEq)]
+#[derive(Queryable, Identifiable, Selectable, Debug, Clone, PartialEq, Eq)]
 #[diesel(
     table_name = super::schema::file,
     primary_key(id),
@@ -85,7 +89,7 @@ pub struct FileIdPath {
     pub full_path: String,
 }
 
-#[derive(Insertable, AsChangeset)]
+#[derive(Insertable, AsChangeset, Debug, PartialEq, Eq)]
 #[diesel(table_name = super::schema::file)]
 pub struct NewFile<'a> {
     pub id: i32,
@@ -95,22 +99,22 @@ pub struct NewFile<'a> {
     pub content_type: &'a str,
 }
 
-#[derive(Queryable, Identifiable, Selectable, Associations, Debug, Clone, PartialEq)]
+#[derive(Queryable, Identifiable, Selectable, Associations, Debug, Clone, PartialEq, Eq)]
 #[diesel(
     table_name = super::schema::localization_key,
     primary_key(key),
     belongs_to(File, foreign_key = file_id),
-    belongs_to(Language, foreign_key = language),
+    belongs_to(Localization, foreign_key = localization),
     check_for_backend(diesel::sqlite::Sqlite),
 )]
 pub struct LocalizationKey {
     pub key: String,
     pub value: String,
     pub file_id: i32,
-    pub language: String,
+    pub localization: String,
 }
 
-#[derive(Queryable, Identifiable, Selectable, Debug, Clone, PartialEq)]
+#[derive(Queryable, Identifiable, Selectable, Debug, Clone, PartialEq, Eq)]
 #[diesel(
     table_name = super::schema::localization_key,
     primary_key(key),
@@ -121,11 +125,11 @@ pub struct LocalizationKeyKeyValue {
     pub value: String,
 }
 
-#[derive(Insertable, AsChangeset)]
+#[derive(Insertable, AsChangeset, Debug, PartialEq, Eq)]
 #[diesel(table_name = super::schema::localization_key)]
 pub struct NewLocalizationKey<'a> {
     pub key: &'a str,
     pub value: &'a str,
     pub file_id: i32,
-    pub language: &'a str,
+    pub localization: &'a str,
 }
